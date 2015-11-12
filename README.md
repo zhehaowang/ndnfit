@@ -2,7 +2,7 @@ Zhehao <zhehao@cs.ucla.edu>
 
 NDNFit Android application based on professor Jung's work.
 
-Did not clone as I don't have access to the original work on BitBucket...
+Did not fork as I don't have access to the original work on BitBucket...
 
 Changes include:
 * Fix crash on Stop because of 0 point recorded 
