@@ -32,6 +32,8 @@ import ucla.remap.ndnfit.db.DBManager;
 import ucla.remap.ndnfit.db.TrackContract;
 import ucla.remap.ndnfit.gps.GPSListener;
 import ucla.remap.ndnfit.listview.TurnInfo;
+import android.content.DialogInterface;
+import android.app.AlertDialog;
 
 // Background image
 // https://www.flickr.com/photos/raulito39/15496039145/in/photolist-o2oRYy-pBkfyH-cvSNfq-hFFenV-7bT8dd-ngJys2-oSmyDE-cgkeSE-ouAHGp-oGsM3M-o3ahaj-dazQG9-kbfcFa-oQLQjB-qhuMod-nsDbE1-eBEW4Q-6xtFHP-38Cyk-8CfaTG-oHyeA6-e5q1Z7-38RAwA-pERacQ-mnaN6-j8ueQ7-oEMuT6-keuLVZ-oLR4PD-rmWKe2-7krLCG-6a8xN1-nUv7iL-f2ui7w-brPJFx-dZvuu5-f3Lm8j-hLXWxv-f3Ez2P-rLz5tZ-ezNNYm-6iSFY6-5D3w8E-oYYGu5-abBcJc-KawqF-pwa23L-8K5pN7-8Yzntf-dB6LxA
@@ -47,7 +49,8 @@ public class MainActivity extends ActionBarActivity {
     ProgressDialog renderProgressDiag_;
     List<Position> debugPoints;
     CypherManager mCypherManager;
-    String mSignerId;
+
+    String mAppId;
 
     // Debug data
     byte[] mEncrypted;
@@ -69,9 +72,58 @@ public class MainActivity extends ActionBarActivity {
      */
     private static final int PAGINATION_OVERLAP = 5;
 
+    private static final int AUTHORIZE_REQUEST = 0;
+    private static final int RESULT_OK = 0;
+    private static final String APP_CATEGORY = "openmhealth";
 
     protected void showProgressDialg() {
         renderProgressDiag_ = ProgressDialog.show(MainActivity.this, "", "In Rendering...", true);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // Check which request we're responding to
+        if (requestCode == AUTHORIZE_REQUEST) {
+            // Make sure the request was successful
+            if (resultCode == RESULT_OK) {
+                mAppId = data.getStringExtra("signer_id");
+                Log.e("zhehao", "Identity picked:" + mAppId);
+            }
+        }
+    }
+
+    public class AuthorizeOnClickListener implements DialogInterface.OnClickListener
+    {
+        String mCertName;
+        String mAppCategory;
+        public AuthorizeOnClickListener(String certName, String appCategory) {
+            mCertName = certName;
+            mAppCategory = appCategory;
+        }
+
+        @Override
+        public void onClick(DialogInterface dialog, int which)
+        {
+            Intent i = new Intent("com.ndn.jwtan.identitymanager.AUTHORIZE");
+            i.putExtra("cert_name", mCertName);
+            i.putExtra("app_category", mAppCategory);
+            startActivityForResult(i, AUTHORIZE_REQUEST);
+        }
+
+    };
+
+    // @param certName This string is intended to be the application's id in the future, left as "stub" for now
+    public void requestSigningKeyName(String certName, String appCategory) {
+        AlertDialog.Builder dlgAlert  = new AlertDialog.Builder(this);
+        dlgAlert.setMessage("Please choose an identity!");
+        dlgAlert.setTitle("Choose an identity");
+        dlgAlert.setPositiveButton("Ok", new AuthorizeOnClickListener(certName, appCategory));
+        dlgAlert.setCancelable(true);
+        dlgAlert.create().show();
+    }
+
+    public String createAppId() {
+        return "Umimplemented";
     }
 
     @Override
@@ -82,12 +134,17 @@ public class MainActivity extends ActionBarActivity {
         // setup for DB Manager
         mDBManager = DBManager.getInstance();
         mDBManager.init(this);
-        Cursor signerRecords = mDBManager.getSignerId();
-        int recordCount = signerRecords.getCount();
+        Cursor idRecords = mDBManager.getIdRecord();
+        int recordCount = idRecords.getCount();
         if (recordCount > 0) {
-            mSignerId = signerRecords.getString(0);
+            if (idRecords.getString(2) == "") {
+                requestSigningKeyName("Umimplemented", APP_CATEGORY);
+            } else {
+                mAppId = idRecords.getString(2);
+            }
         } else {
-            
+            //createAppId();
+            requestSigningKeyName("Umimplemented", APP_CATEGORY);
         }
 
         mGPSListener = new GPSListener(this);

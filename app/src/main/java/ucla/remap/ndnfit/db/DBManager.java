@@ -116,12 +116,14 @@ public class DBManager implements Serializable{
         if (!isIdTableCreated()) {
             mDB.execSQL("create table " + ID_TABLE + "("
                     + " id integer PRIMARY KEY autoincrement, "
+                    + " app_id text, "
+                    + " app_cert_name text, "
                     + " signer_id text)");
         }
     }
 
-    public Cursor getSignerId() {
-        String[] columns = {"signer_id"};
+    public Cursor getIdRecord() {
+        String[] columns = {"app_id", "app_cert_name", "signer_id"};
         return mDB.query(ID_TABLE, columns, null, null, null, null, null);
     }
 
