@@ -134,6 +134,7 @@ public class MainActivity extends ActionBarActivity {
         // setup for DB Manager
         mDBManager = DBManager.getInstance();
         mDBManager.init(this);
+        /*
         Cursor idRecords = mDBManager.getIdRecord();
         int recordCount = idRecords.getCount();
         if (recordCount > 0) {
@@ -145,7 +146,7 @@ public class MainActivity extends ActionBarActivity {
         } else {
             //createAppId();
             requestSigningKeyName("Umimplemented", APP_CATEGORY);
-        }
+        }*/
 
         mGPSListener = new GPSListener(this);
 
@@ -171,8 +172,36 @@ public class MainActivity extends ActionBarActivity {
         btnStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-            // start tracking.
-            startLocationService();
+                // start tracking.
+                startLocationService();
+                mTaskSnapToRoads =
+                        new AsyncTask<Void, Void, List<SnappedPoint>>() {
+
+                            @Override
+                            protected void onPreExecute() {
+                                showProgressDialg();
+                            }
+
+                            @Override
+                            protected List<SnappedPoint> doInBackground(Void... params) {
+                                try {
+                                    return snapToRoads(mContext);
+                                } catch (final Exception ex) {
+                                    ex.printStackTrace();
+                                    return null;
+                                }
+                            }
+
+                            @Override
+                            // Move to Track Activity
+                            protected void onPostExecute(List<SnappedPoint> snappedPoints) {
+                                // 검색창이 열려있으면 닫음.
+                                if(renderProgressDiag_ != null && renderProgressDiag_.isShowing()) {
+                                    renderProgressDiag_.dismiss();
+                                }
+                                mGPSListener.stopTrack(snappedPoints);
+                            }
+                        };
             }
         });
 
@@ -451,10 +480,10 @@ public class MainActivity extends ActionBarActivity {
     }
 
 
-    AsyncTask<Void, Void, List<SnappedPoint>> mTaskSnapToRoads =
-            new AsyncTask<Void, Void, List<SnappedPoint>>() {
+    AsyncTask<Void, Void, List<SnappedPoint>> mTaskSnapToRoads = null;
+    /*        new AsyncTask<Void, Void, List<SnappedPoint>>() {
 
-                @Override
+                @override
                 protected void onPreExecute() {
                     showProgressDialg();
                 }
@@ -478,7 +507,7 @@ public class MainActivity extends ActionBarActivity {
                     }
                     mGPSListener.stopTrack(snappedPoints);
                 }
-            };
+            };*/
 
     AsyncTask<Void, Void, List<SnappedPoint>> mTaskDebug =
             new AsyncTask<Void, Void, List<SnappedPoint>>() {
