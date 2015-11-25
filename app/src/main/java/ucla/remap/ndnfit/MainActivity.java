@@ -1,16 +1,17 @@
 package ucla.remap.ndnfit;
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.ContentValues;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -18,7 +19,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
-import com.google.android.gms.maps.model.LatLng;
 import com.google.maps.GeoApiContext;
 import com.google.maps.RoadsApi;
 import com.google.maps.model.SnappedPoint;
@@ -32,8 +32,6 @@ import ucla.remap.ndnfit.db.DBManager;
 import ucla.remap.ndnfit.db.TrackContract;
 import ucla.remap.ndnfit.gps.GPSListener;
 import ucla.remap.ndnfit.listview.TurnInfo;
-import android.content.DialogInterface;
-import android.app.AlertDialog;
 
 // Background image
 // https://www.flickr.com/photos/raulito39/15496039145/in/photolist-o2oRYy-pBkfyH-cvSNfq-hFFenV-7bT8dd-ngJys2-oSmyDE-cgkeSE-ouAHGp-oGsM3M-o3ahaj-dazQG9-kbfcFa-oQLQjB-qhuMod-nsDbE1-eBEW4Q-6xtFHP-38Cyk-8CfaTG-oHyeA6-e5q1Z7-38RAwA-pERacQ-mnaN6-j8ueQ7-oEMuT6-keuLVZ-oLR4PD-rmWKe2-7krLCG-6a8xN1-nUv7iL-f2ui7w-brPJFx-dZvuu5-f3Lm8j-hLXWxv-f3Ez2P-rLz5tZ-ezNNYm-6iSFY6-5D3w8E-oYYGu5-abBcJc-KawqF-pwa23L-8K5pN7-8Yzntf-dB6LxA

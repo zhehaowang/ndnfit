@@ -9,11 +9,8 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
-import android.widget.Toast;
 
 import java.io.Serializable;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 
 import ucla.remap.ndnfit.Position;
@@ -142,8 +139,9 @@ public class DBManager implements Serializable{
     public void finishTrack() {
         ContentValues record = new ContentValues();
 
-//        record.put("finish_time", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()) );
+        //record.put("finish_time", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()) );
         record.put("finish_time", System.currentTimeMillis());
+        //record.put("finish_time", anchorPosition.getTimeStamp());
         int updatedRows = (int)mDB.update(TURN_TABLE, record, "id "+"="+currentTurn, null);
     }
 
@@ -159,6 +157,8 @@ public class DBManager implements Serializable{
         Position anchorPosition = positionList.get(0);
         record.put("start_time", anchorPosition.getTimeStamp());
         int turnId = (int)mDB.insert(TURN_TABLE, null, record);
+        //Wang Yang: update currentTurn to reflect the current turn_id
+        currentTurn = turnId;
         record.clear();
 
         for(Position position : positionList) {

@@ -46,8 +46,8 @@ public class GPSListener implements LocationListener{
             Toast.makeText(mainCtx, "No points captured by GPS", Toast.LENGTH_SHORT).show();
             return;
         }
-
-        mDBManager.recordPoints(trackPoints);
+        //Wang Yang: Avoid duplicate recording
+        //mDBManager.recordPoints(trackPoints);
 
         // Save Rendering Points
         List<Position> renderedPoints = new ArrayList<>();
