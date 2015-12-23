@@ -108,7 +108,7 @@ public class MainActivity extends ActionBarActivity {
             startActivityForResult(i, AUTHORIZE_REQUEST);
         }
 
-    };
+    }
 
     // @param certName This string is intended to be the application's id in the future, left as "stub" for now
     public void requestSigningKeyName(String certName, String appCategory) {

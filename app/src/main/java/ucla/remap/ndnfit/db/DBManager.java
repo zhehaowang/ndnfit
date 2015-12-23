@@ -10,6 +10,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
+
 import java.io.Serializable;
 import java.util.List;
 
@@ -142,7 +143,7 @@ public class DBManager implements Serializable{
         //record.put("finish_time", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()) );
         record.put("finish_time", System.currentTimeMillis());
         //record.put("finish_time", anchorPosition.getTimeStamp());
-        int updatedRows = (int)mDB.update(TURN_TABLE, record, "id "+"="+currentTurn, null);
+        int updatedRows = mDB.update(TURN_TABLE, record, "id "+"="+currentTurn, null);
     }
 
     public void recordPoints(List<Position> positionList) {

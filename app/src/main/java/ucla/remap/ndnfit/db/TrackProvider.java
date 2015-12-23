@@ -13,7 +13,7 @@ import android.net.Uri;
 /**
  * Created by nightzen on 5/25/15.
  */
-public class TrackProvider extends ContentProvider {
+public class  TrackProvider extends ContentProvider {
     private SQLiteDatabase db;
     private TrackDBHelper taskDBHelper;
     public static final UriMatcher uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
