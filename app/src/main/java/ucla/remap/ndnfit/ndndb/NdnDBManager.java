@@ -16,7 +16,7 @@ public class NdnDBManager implements Serializable {
     private SQLiteDatabase mDB;
     private Context mCtx;
 
-    private static final String DB_NAME = "ndnfit.ndndb";
+    private static final String DB_NAME = "ndndb";
     private static final String TAG = "NdnDBManager";
     private static final String POINT_TABLE = "point_table";
     private static final String TURN_TABLE = "turn_table";
@@ -37,6 +37,11 @@ public class NdnDBManager implements Serializable {
     public void init(Context ctx) {
         mCtx = ctx;
         prepareDB();
+        createTable();
+    }
+
+    public void initForTest() {
+        mDB = SQLiteDatabase.openOrCreateDatabase(DB_NAME, null, null);
         createTable();
     }
 

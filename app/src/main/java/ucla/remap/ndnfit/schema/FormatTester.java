@@ -16,7 +16,7 @@ import java.io.IOException;
 public class FormatTester {
     private static final JsonSchemaFactory jsonSchemaFactory = JsonSchemaFactory.byDefault();
     private static final ObjectMapper objectMapper = new ObjectMapper();
-    File schemaFile = new File("./src/main/res/schema/time-location-list.json");
+    File schemaFile = new File("./src/main/res/raw/timelocationlist.json");
     JsonSchema jsonSchema;
 
     public FormatTester() {
