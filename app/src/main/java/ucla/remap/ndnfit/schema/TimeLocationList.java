@@ -15,7 +15,7 @@ public class TimeLocationList {
     public TimeLocationList() {
     }
 
-    public List<TimeLocation> getTimeLocations() {
+    public List<TimeLocation> getItems() {
         return items;
     }
 

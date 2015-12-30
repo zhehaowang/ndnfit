@@ -1,11 +1,12 @@
 package ucla.remap.ndnfit.schema;
 
+import java.io.Serializable;
 import java.util.Date;
 
 /**
  * Created by zhanght on 2015/12/21.
  */
-public class TimeLocation implements Comparable{
+public class TimeLocation implements Comparable, Serializable {
 
     private Date timestamp;
     private double longitude;

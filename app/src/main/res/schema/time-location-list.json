@@ -13,18 +13,18 @@
         "type": "number"
       },
 
-      "latitude":{
-        "description": "The latitude where this data point was created.",
-        "type": "number",
-        "minimum": -90,
-        "maximum": 90
-      },
-
       "longitude":{
         "description": "The longitude where this data point was created.",
         "type": "number",
         "minimum": -180,
         "maximum": 180
+      },
+
+      "latitude":{
+        "description": "The latitude where this data point was created.",
+        "type": "number",
+        "minimum": -90,
+        "maximum": 90
       },
 
       "altitude":{

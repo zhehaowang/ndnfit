@@ -29,7 +29,7 @@ public class FormatTester {
 
     public boolean isValid(TimeLocationList data) {
         try {
-            String documentAsString = objectMapper.writeValueAsString(data);
+            String documentAsString = objectMapper.writeValueAsString(data.getItems());
             JsonNode documentNode = objectMapper.readTree(documentAsString);
             ProcessingReport report = jsonSchema.validate(documentNode);
             return report.isSuccess();
