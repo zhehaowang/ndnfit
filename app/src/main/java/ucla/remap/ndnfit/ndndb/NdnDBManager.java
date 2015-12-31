@@ -4,8 +4,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
-import net.named_data.jndn.Data;
-import net.named_data.jndn.util.SignedBlob;
 
 import java.io.Serializable;
 
