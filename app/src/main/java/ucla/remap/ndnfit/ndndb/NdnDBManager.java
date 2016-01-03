@@ -19,8 +19,8 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import ucla.remap.ndnfit.position.Position;
-import ucla.remap.ndnfit.position.PositionList;
+import ucla.remap.ndnfit.data.Position;
+import ucla.remap.ndnfit.data.PositionListProcessor;
 
 /**
  * Created by zhanght on 2015/12/27.
@@ -133,36 +133,36 @@ public class NdnDBManager implements Serializable {
 
     public void recordPoints(List<Position> positionList) {
         Log.e("haitao", "recordPoints called");
-        PositionList plist = new PositionList();
+        PositionListProcessor plist = new PositionListProcessor();
         plist.setItems(positionList);
-        plist.sortItems();
+        plist.processItems();
         ContentValues record = new ContentValues();
-        Name name = new Name(Long.toString(plist.getStartTime()));
-        Data data = new Data();
-        data.setName(name);
-        String documentAsString = null;
-        try {
-            documentAsString = objectMapper.writeValueAsString(plist.getItems());
-            data.setContent(new Blob(documentAsString));
-            record.put("name", name.toUri());
-
-            ByteBuffer original = data.wireEncode().buf();
-            ByteBuffer clone = ByteBuffer.allocate(original.capacity());
-            original.rewind();//copy from the beginning
-            clone.put(original);
-            original.rewind();
-            clone.flip();
-            byte[] buffer = clone.array();
-            record.put("data", buffer);
-
-            mDB.insert(POINT_TABLE, null, record);
-            Log.e("haitao", "finish recording");
-            Log.e("haitao", data.wireEncode().buf().toString());
-            Log.e("haitao", new String(buffer));
-            Log.e("haitao", Integer.toString(buffer.length));
-
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
+        for (List<Position>  oneList : plist.getGroupItems()) {
+            Name name = new Name(Long.toString(oneList.get(0).getTimeStamp()));
+            Data data = new Data();
+            data.setName(name);
+            String documentAsString = null;
+            try {
+                documentAsString = objectMapper.writeValueAsString(oneList);
+                data.setContent(new Blob(documentAsString));
+                record.put("name", name.toUri());
+                ByteBuffer original = data.wireEncode().buf();
+                ByteBuffer clone = ByteBuffer.allocate(original.capacity());
+                original.rewind();//copy from the beginning
+                clone.put(original);
+                original.rewind();
+                clone.flip();
+                byte[] buffer = clone.array();
+                record.put("data", buffer);
+                mDB.insert(POINT_TABLE, null, record);
+                Log.e("haitao", "finish recording");
+                Log.e("haitao", data.wireEncode().buf().toString());
+                Log.e("haitao", new String(buffer));
+                Log.e("haitao", Integer.toString(buffer.length));
+                getPoints(name);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
         }
     }
 

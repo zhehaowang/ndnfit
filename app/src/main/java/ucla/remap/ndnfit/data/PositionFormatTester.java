@@ -1,4 +1,4 @@
-package ucla.remap.ndnfit.position;
+package ucla.remap.ndnfit.data;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,8 +9,6 @@ import com.github.fge.jsonschema.main.JsonSchemaFactory;
 
 import java.io.File;
 import java.io.IOException;
-
-import ucla.remap.ndnfit.timelocation.TimeLocationList;
 
 /**
  * Created by zhanght on 2015/12/23.
@@ -29,7 +27,7 @@ public class PositionFormatTester {
         }
     }
 
-    public boolean isValid(PositionList data) {
+    public boolean isValid(PositionListProcessor data) {
         try {
             String documentAsString = objectMapper.writeValueAsString(data.getItems());
             JsonNode documentNode = objectMapper.readTree(documentAsString);

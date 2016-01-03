@@ -1,4 +1,4 @@
-package ucla.remap.ndnfit.position;
+package ucla.remap.ndnfit.data;
 
 import java.io.Serializable;
 
@@ -52,7 +52,7 @@ public class Position implements Comparable, Serializable {
             //TOOD: do sometion
         }
         long anotherTimeStamp = ((Position) another).getTimeStamp();
-        if(anotherTimeStamp < timeStamp) {
+        if(anotherTimeStamp > timeStamp) {
             return -1;
         }
         if(anotherTimeStamp == timeStamp) {

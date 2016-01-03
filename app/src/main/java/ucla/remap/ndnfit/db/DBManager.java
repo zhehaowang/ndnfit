@@ -14,7 +14,7 @@ import android.util.Log;
 import java.io.Serializable;
 import java.util.List;
 
-import ucla.remap.ndnfit.position.Position;
+import ucla.remap.ndnfit.data.Position;
 
 
 public class DBManager implements Serializable{

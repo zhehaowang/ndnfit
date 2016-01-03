@@ -23,7 +23,7 @@
       },
 
       "timeStamp":{
-        "description": "The altitude where this data point was created.",
+        "description": "The timestamp when this data point was created.",
         "type": "number"
       }
     },

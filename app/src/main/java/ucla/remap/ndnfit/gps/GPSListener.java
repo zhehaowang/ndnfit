@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ucla.remap.ndnfit.ndndb.NdnDBManager;
-import ucla.remap.ndnfit.position.Position;
+import ucla.remap.ndnfit.data.Position;
 import ucla.remap.ndnfit.db.DBManager;
 
 /**
