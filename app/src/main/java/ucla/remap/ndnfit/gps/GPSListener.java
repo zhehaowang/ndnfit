@@ -13,7 +13,8 @@ import com.google.maps.model.SnappedPoint;
 import java.util.ArrayList;
 import java.util.List;
 
-import ucla.remap.ndnfit.Position;
+import ucla.remap.ndnfit.ndndb.NdnDBManager;
+import ucla.remap.ndnfit.position.Position;
 import ucla.remap.ndnfit.db.DBManager;
 
 /**
@@ -23,6 +24,7 @@ public class GPSListener implements LocationListener{
 
     Context mainCtx;
     DBManager mDBManager;
+    NdnDBManager mNdnDBManager;
     List<Position> trackPoints;
 
     private static String TAG = "GPSListener";
@@ -30,6 +32,7 @@ public class GPSListener implements LocationListener{
     public GPSListener(Context ctx) {
         this.mainCtx = ctx;
         mDBManager = DBManager.getInstance();
+        mNdnDBManager = NdnDBManager.getInstance();
         trackPoints = new ArrayList<>();
     }
 
@@ -67,6 +70,7 @@ public class GPSListener implements LocationListener{
         }
 
         mDBManager.recordPoints(renderedPoints);
+        mNdnDBManager.recordPoints(renderedPoints);
     }
 
     public List<Position> getTrackPoints() {

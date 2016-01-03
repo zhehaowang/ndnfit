@@ -138,8 +138,8 @@
     <orderEntry type="library" exported="" name="libphonenumber-6.2" level="project" />
     <orderEntry type="library" exported="" name="jackson-databind-2.5.3" level="project" />
     <orderEntry type="library" exported="" name="guava-16.0.1" level="project" />
-    <orderEntry type="library" exported="" name="joda-time-2.4" level="project" />
     <orderEntry type="library" exported="" name="activation-1.1" level="project" />
+    <orderEntry type="library" exported="" name="joda-time-2.4" level="project" />
     <orderEntry type="library" exported="" name="appcompat-v7-21.0.3" level="project" />
     <orderEntry type="library" exported="" name="protobuf-java-2.6.1" level="project" />
     <orderEntry type="library" exported="" name="multidex-1.0.1" level="project" />

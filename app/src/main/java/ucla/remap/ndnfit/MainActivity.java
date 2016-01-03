@@ -32,6 +32,8 @@ import ucla.remap.ndnfit.db.DBManager;
 import ucla.remap.ndnfit.db.TrackContract;
 import ucla.remap.ndnfit.gps.GPSListener;
 import ucla.remap.ndnfit.listview.TurnInfo;
+import ucla.remap.ndnfit.ndndb.NdnDBManager;
+import ucla.remap.ndnfit.position.Position;
 
 // Background image
 // https://www.flickr.com/photos/raulito39/15496039145/in/photolist-o2oRYy-pBkfyH-cvSNfq-hFFenV-7bT8dd-ngJys2-oSmyDE-cgkeSE-ouAHGp-oGsM3M-o3ahaj-dazQG9-kbfcFa-oQLQjB-qhuMod-nsDbE1-eBEW4Q-6xtFHP-38Cyk-8CfaTG-oHyeA6-e5q1Z7-38RAwA-pERacQ-mnaN6-j8ueQ7-oEMuT6-keuLVZ-oLR4PD-rmWKe2-7krLCG-6a8xN1-nUv7iL-f2ui7w-brPJFx-dZvuu5-f3Lm8j-hLXWxv-f3Ez2P-rLz5tZ-ezNNYm-6iSFY6-5D3w8E-oYYGu5-abBcJc-KawqF-pwa23L-8K5pN7-8Yzntf-dB6LxA
@@ -43,6 +45,7 @@ public class MainActivity extends ActionBarActivity {
 
     GPSListener mGPSListener;
     DBManager mDBManager;
+    NdnDBManager mNdnDBmanager;
     boolean mInTracking;
     ProgressDialog renderProgressDiag_;
     List<Position> debugPoints;
@@ -132,6 +135,9 @@ public class MainActivity extends ActionBarActivity {
         // setup for DB Manager
         mDBManager = DBManager.getInstance();
         mDBManager.init(this);
+
+        mNdnDBmanager = NdnDBManager.getInstance();
+        mNdnDBmanager.init(this);
         /*
         Cursor idRecords = mDBManager.getIdRecord();
         int recordCount = idRecords.getCount();
@@ -275,7 +281,7 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private ArrayList prepareData() {
-        SimpleDateFormat sdf = new SimpleDateFormat("MMM/dd/yyyy HH:mm:ss");
+        SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
         ArrayList<TurnInfo> list = new ArrayList<>();
         Cursor turnCursor = mDBManager.getAllTurn();
         int turnRecord = turnCursor.getCount();
@@ -382,6 +388,7 @@ public class MainActivity extends ActionBarActivity {
 
     private void resetData() {
         mDBManager.resetData();
+        mNdnDBmanager.resetData();
     }
 
     /**
@@ -548,7 +555,10 @@ public class MainActivity extends ActionBarActivity {
                         Log.d(TAG, "Render " + point.originalIndex + "->" + idx);
                         idx++;
                     }
+                    Log.e("haitao", "start to record points");
                     mDBManager.recordPoints(renderedPoints);
+                    mNdnDBmanager.recordPoints(renderedPoints);
+                    Log.e("haitao", "end to record points");
                 }
             };
 

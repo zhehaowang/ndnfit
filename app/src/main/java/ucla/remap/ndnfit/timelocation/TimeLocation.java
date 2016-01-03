@@ -1,9 +1,10 @@
-package ucla.remap.ndnfit.schema;
+package ucla.remap.ndnfit.timelocation;
 
 import java.io.Serializable;
 import java.util.Date;
 
 /**
+ * This class is create for future use.
  * Created by zhanght on 2015/12/21.
  */
 public class TimeLocation implements Comparable, Serializable {

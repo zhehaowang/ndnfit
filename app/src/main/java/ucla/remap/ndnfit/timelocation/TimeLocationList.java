@@ -1,6 +1,5 @@
-package ucla.remap.ndnfit.schema;
+package ucla.remap.ndnfit.timelocation;
 
-import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -11,6 +10,9 @@ import java.util.List;
  */
 public class TimeLocationList {
     private final List<TimeLocation> items = new ArrayList<>();
+
+    private Date startTime;
+    private Date finishTime;
 
     public TimeLocationList() {
     }
@@ -27,5 +29,11 @@ public class TimeLocationList {
     public void addItem(TimeLocation one) {
         this.items.add(one);
         Collections.sort(this.items);
+    }
+
+    public void sortItems() {
+        Collections.sort(this.items);
+        startTime = items.get(0).getTimestamp();
+        finishTime = items.get(items.size()-1).getTimestamp();
     }
 }
