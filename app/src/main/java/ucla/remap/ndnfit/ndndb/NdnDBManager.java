@@ -19,6 +19,8 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import ucla.remap.ndnfit.NDNFitCommon;
+import ucla.remap.ndnfit.data.Catalog;
 import ucla.remap.ndnfit.data.Position;
 import ucla.remap.ndnfit.data.PositionListProcessor;
 
@@ -111,22 +113,24 @@ public class NdnDBManager implements Serializable {
     public void createTable() {
         if (!isTurnTableCreated()) {
             mDB.execSQL("create table " + TURN_TABLE + "("
-                            + " name TEXT PRIMARY KEY, "
+                            + " id integer PRIMARY KEY autoincrement, "
                             + " data BLOB NOT NULL);"
             );
         }
 
         if (!isPointTableCreated()) {
             mDB.execSQL("create table " + POINT_TABLE + "("
-                            + " name TEXT PRIMARY KEY, "
+                            + " timepoint TIMESTAMP PRIMARY KEY, "
                             + " data BLOB NOT NULL);"
             );
         }
 
         if (!isCatalogTableCreated()) {
             mDB.execSQL("create table " + CATALOG_TABLE + "("
-                            + " name TEXT PRIMARY KEY, "
-                            + " data BLOB NOT NULL);"
+                            + " timepoint TIMESTAMP, "
+                            + " version integer, "
+                            + " data BLOB NOT NULL, "
+                            + " primary key (timepoint, version));"
             );
         }
     }
@@ -137,15 +141,15 @@ public class NdnDBManager implements Serializable {
         plist.setItems(positionList);
         plist.processItems();
         ContentValues record = new ContentValues();
-        for (List<Position>  oneList : plist.getGroupItems()) {
-            Name name = new Name(Long.toString(oneList.get(0).getTimeStamp()));
+        for (List<Position> oneList : plist.getGroupItems()) {
+            Name name = new Name(NDNFitCommon.DATA_PREFIX).appendTimestamp(oneList.get(0).getTimeStamp());
             Data data = new Data();
             data.setName(name);
             String documentAsString = null;
             try {
                 documentAsString = objectMapper.writeValueAsString(oneList);
                 data.setContent(new Blob(documentAsString));
-                record.put("name", name.toUri());
+                record.put("timepoint", oneList.get(0).getTimeStamp());
                 ByteBuffer original = data.wireEncode().buf();
                 ByteBuffer clone = ByteBuffer.allocate(original.capacity());
                 original.rewind();//copy from the beginning
@@ -156,8 +160,6 @@ public class NdnDBManager implements Serializable {
                 record.put("data", buffer);
                 mDB.insert(POINT_TABLE, null, record);
                 Log.e("haitao", "finish recording");
-                Log.e("haitao", data.wireEncode().buf().toString());
-                Log.e("haitao", new String(buffer));
                 Log.e("haitao", Integer.toString(buffer.length));
                 getPoints(name);
             } catch (JsonProcessingException e) {
@@ -167,12 +169,98 @@ public class NdnDBManager implements Serializable {
     }
 
     public Data getPoints(Name name) {
-        String[] columns = {"name", "data"};
-        Cursor cursor = mDB.query(POINT_TABLE, columns, "name = \"" + name.toUri() + "\"", null, null, null, null);
+        if (name.getPrefix(-1).compare(NDNFitCommon.DATA_PREFIX) != 0)
+            return null;
+        String[] columns = {"timepoint", "data"};
+
 
         try {
+            Cursor cursor = mDB.query(POINT_TABLE, columns, "timepoint = " + name.get(-1).toTimestamp(), null, null, null, null);
             if (cursor.moveToNext()) {
                 byte[] raw = cursor.getBlob(1);
+                Data data = new Data();
+                data.wireDecode(new Blob(raw));
+                Log.e("haitao", data.getName().toUri());
+                Log.e("haitao", data.getContent().toString());
+                return data;
+            }
+        } catch (EncodingException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public long getFirstPointTimestamp() {
+        String[] columns = {"timepoint", "data"};
+        Cursor cursor = mDB.query(POINT_TABLE, columns, null, null, null, null, "timepoint ASC");
+        if (cursor.moveToNext()) {
+            return cursor.getLong(0);
+        }
+        return 0;
+    }
+
+    public Cursor getPoints(long startTimestamp, long interval) {
+        Log.e("haitao", "getPoints 2 called");
+        String[] columns = {"timepoint", "data"};
+        long endTimestamp = startTimestamp + interval;
+        Cursor cursor = mDB.query(POINT_TABLE, columns, "timepoint >= " + startTimestamp +
+                " AND timepoint < " + endTimestamp, null, null, null, "timepoint ASC");
+        Log.e("haitao", "getPoints 2 call finished");
+        return cursor;
+    }
+
+    public void insertCatalog(Catalog catalog) {
+        Log.e("haitao", "insertCatalog called");
+        //check the old version
+        String[] columns = {"timepoint", "version", "data"};
+        int version = 1;
+        Cursor cursor = mDB.query(CATALOG_TABLE, columns, "timepoint = " + catalog.getCatalogTimePoint(),
+                null, null, null, "version DESC");
+        if (cursor.moveToNext()) {
+            version = cursor.getInt(1) + 1;
+        }
+
+
+        //insert
+        ContentValues record = new ContentValues();
+        catalog.sortItems();
+        Data data = new Data();
+        Name name = new Name(NDNFitCommon.CATALOG_PREFIX).appendTimestamp(catalog.getCatalogTimePoint()).appendVersion(version);
+        data.setName(name);
+        String documentAsString = null;
+        try {
+            documentAsString = objectMapper.writeValueAsString(catalog.getPointTime());
+            data.setContent(new Blob(documentAsString));
+            record.put("timepoint", catalog.getCatalogTimePoint());
+            record.put("version", version);
+            ByteBuffer original = data.wireEncode().buf();
+            ByteBuffer clone = ByteBuffer.allocate(original.capacity());
+            original.rewind();//copy from the beginning
+            clone.put(original);
+            original.rewind();
+            clone.flip();
+            byte[] buffer = clone.array();
+            record.put("data", buffer);
+            mDB.insert(CATALOG_TABLE, null, record);
+            Log.e("haitao", "finish recording");
+            Log.e("haitao", Integer.toString(buffer.length));
+            getCatalog(name);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Data getCatalog(Name name) {
+        if (name.getPrefix(-2).compare(NDNFitCommon.CATALOG_PREFIX) != 0)
+            return null;
+        String[] columns = {"timepoint", "version", "data"};
+
+
+        try {
+            Cursor cursor = mDB.query(CATALOG_TABLE, columns, "timepoint = " + name.get(-2).toTimestamp()
+                    + " AND version = " + name.get(-1).toVersion(), null, null, null, null);
+            if (cursor.moveToNext()) {
+                byte[] raw = cursor.getBlob(2);
                 Data data = new Data();
                 data.wireDecode(new Blob(raw));
                 Log.e("haitao", data.getName().toUri());
@@ -191,6 +279,7 @@ public class NdnDBManager implements Serializable {
     public void resetData() {
         mDB.execSQL("delete from " + TURN_TABLE);
         mDB.execSQL("delete from " + POINT_TABLE);
+        mDB.execSQL("delete from " + CATALOG_TABLE);
         Log.i(TAG, "RESET Table");
     }
 }

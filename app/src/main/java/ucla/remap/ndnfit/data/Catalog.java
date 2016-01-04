@@ -32,4 +32,8 @@ public class Catalog {
         pointTime.add(one);
         Collections.sort(pointTime);
     }
+
+    public void sortItems() {
+        Collections.sort(pointTime);
+    }
 }
