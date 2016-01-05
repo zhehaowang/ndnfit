@@ -10,6 +10,7 @@ import android.location.LocationManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.StrictMode;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
@@ -27,6 +28,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 import ucla.remap.ndnfit.db.DBManager;
 import ucla.remap.ndnfit.db.TrackContract;
@@ -51,6 +54,7 @@ public class MainActivity extends ActionBarActivity {
     ProgressDialog renderProgressDiag_;
     List<Position> debugPoints;
     CypherManager mCypherManager;
+    ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(4);
 
     String mAppId;
 
@@ -94,18 +98,17 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    public class AuthorizeOnClickListener implements DialogInterface.OnClickListener
-    {
+    public class AuthorizeOnClickListener implements DialogInterface.OnClickListener {
         String mCertName;
         String mAppCategory;
+
         public AuthorizeOnClickListener(String certName, String appCategory) {
             mCertName = certName;
             mAppCategory = appCategory;
         }
 
         @Override
-        public void onClick(DialogInterface dialog, int which)
-        {
+        public void onClick(DialogInterface dialog, int which) {
             Intent i = new Intent("com.ndn.jwtan.identitymanager.AUTHORIZE");
             i.putExtra("cert_name", mCertName);
             i.putExtra("app_category", mAppCategory);
@@ -116,7 +119,7 @@ public class MainActivity extends ActionBarActivity {
 
     // @param certName This string is intended to be the application's id in the future, left as "stub" for now
     public void requestSigningKeyName(String certName, String appCategory) {
-        AlertDialog.Builder dlgAlert  = new AlertDialog.Builder(this);
+        AlertDialog.Builder dlgAlert = new AlertDialog.Builder(this);
         dlgAlert.setMessage("Please choose an identity!");
         dlgAlert.setTitle("Choose an identity");
         dlgAlert.setPositiveButton("Ok", new AuthorizeOnClickListener(certName, appCategory));
@@ -132,6 +135,11 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        if (android.os.Build.VERSION.SDK_INT > 9) {
+            StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+            StrictMode.setThreadPolicy(policy);
+        }
 
         // setup for DB Manager
         mDBManager = DBManager.getInstance();
@@ -173,7 +181,7 @@ public class MainActivity extends ActionBarActivity {
 
 
         // btnStart
-        Button btnStart = (Button)findViewById(R.id.btnStart);
+        Button btnStart = (Button) findViewById(R.id.btnStart);
         btnStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -201,7 +209,7 @@ public class MainActivity extends ActionBarActivity {
                             // Move to Track Activity
                             protected void onPostExecute(List<SnappedPoint> snappedPoints) {
                                 // 검색창이 열려있으면 닫음.
-                                if(renderProgressDiag_ != null && renderProgressDiag_.isShowing()) {
+                                if (renderProgressDiag_ != null && renderProgressDiag_.isShowing()) {
                                     renderProgressDiag_.dismiss();
                                 }
                                 mGPSListener.stopTrack(snappedPoints);
@@ -211,18 +219,18 @@ public class MainActivity extends ActionBarActivity {
         });
 
         // btnStop
-        Button btnStop = (Button)findViewById(R.id.btnStop);
+        Button btnStop = (Button) findViewById(R.id.btnStop);
         btnStop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-            // stop tracking
+                // stop tracking
 //            renderPositions();
-            stopLocationService();
+                stopLocationService();
             }
         });
 
         // btnShow
-        Button btnShow = (Button)findViewById(R.id.btnShow);
+        Button btnShow = (Button) findViewById(R.id.btnShow);
         btnShow.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -237,7 +245,7 @@ public class MainActivity extends ActionBarActivity {
         });
 
         // btnReset
-        Button btnReset = (Button)findViewById(R.id.btnReset);
+        Button btnReset = (Button) findViewById(R.id.btnReset);
         btnReset.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -248,7 +256,7 @@ public class MainActivity extends ActionBarActivity {
         });
 
         // btnEncrypt
-        Button btnEncrypt = (Button)findViewById(R.id.btnEncrypt);
+        Button btnEncrypt = (Button) findViewById(R.id.btnEncrypt);
         btnEncrypt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -259,7 +267,7 @@ public class MainActivity extends ActionBarActivity {
         });
 
         // btnDecrypt
-        Button btnDecrypt = (Button)findViewById(R.id.btnDecrypt);
+        Button btnDecrypt = (Button) findViewById(R.id.btnDecrypt);
         btnDecrypt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -280,7 +288,8 @@ public class MainActivity extends ActionBarActivity {
 //            }
 //        });
 
-        NetworkConnection.start();
+        NetworkConnection.startCreatingCatalog(scheduler);
+        NetworkConnection.startNetworkService(scheduler);
     }
 
     private ArrayList prepareData() {
@@ -288,12 +297,12 @@ public class MainActivity extends ActionBarActivity {
         ArrayList<TurnInfo> list = new ArrayList<>();
         Cursor turnCursor = mDBManager.getAllTurn();
         int turnRecord = turnCursor.getCount();
-        for(int idx=0; idx<turnRecord; idx++) {
+        for (int idx = 0; idx < turnRecord; idx++) {
             turnCursor.moveToNext();
             int turnId = turnCursor.getInt(0);
             Cursor cursor = mDBManager.getPoints(turnId);
             int recordCount = cursor.getCount();
-            if(recordCount > 0) {
+            if (recordCount > 0) {
                 TurnInfo info = new TurnInfo();
                 info.setTurnId(turnCursor.getInt(0));
                 long startTime = turnCursor.getLong(1);
@@ -342,7 +351,7 @@ public class MainActivity extends ActionBarActivity {
 //        DBManager dbManager = DBManager.getInstance();
 //        dbManager.startTrack();
         mGPSListener.startTrack();
-        LocationManager manager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+        LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
         // Zhehao: having both on seems to crash AsyncTask sometimes, investigating; GPS_PROVIDER never worked for me but NETWORK provider did
         //manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, minTime, minDistance, mGPSListener);
@@ -353,10 +362,11 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private void stopLocationService() {
-        LocationManager manager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+        LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         manager.removeUpdates(mGPSListener);
         mInTracking = false;
-        mTaskSnapToRoads.execute();
+        if (mTaskSnapToRoads != null)
+            mTaskSnapToRoads.executeOnExecutor(scheduler);
 //        DBManager dbManager = DBManager.getInstance();
 //        dbManager.finishTrack();
 //        mGPSListener.stopTrack();
@@ -371,7 +381,7 @@ public class MainActivity extends ActionBarActivity {
     private void debugLocation() {
         Cursor turnCursor = mDBManager.getAllTurn();
         int turnRecord = turnCursor.getCount();
-        for(int idx=0; idx<turnRecord; idx++) {
+        for (int idx = 0; idx < turnRecord; idx++) {
             turnCursor.moveToNext();
             int id = turnCursor.getInt(0);
             long start = turnCursor.getLong(1);
@@ -539,16 +549,16 @@ public class MainActivity extends ActionBarActivity {
                 // Move to Track Activity
                 protected void onPostExecute(List<SnappedPoint> snappedPoints) {
                     // 검색창이 열려있으면 닫음.
-                    if(renderProgressDiag_ != null && renderProgressDiag_.isShowing()) {
+                    if (renderProgressDiag_ != null && renderProgressDiag_.isShowing()) {
                         renderProgressDiag_.dismiss();
                     }
                     // Save Rendering Points
                     List<Position> renderedPoints = new ArrayList<>();
                     int lastIdx = 0;
                     int idx = 0;
-                    for(SnappedPoint point : snappedPoints) {
+                    for (SnappedPoint point : snappedPoints) {
                         Position position = new Position(point.location.lat, point.location.lng);
-                        if(point.originalIndex == -1) {
+                        if (point.originalIndex == -1) {
                             position.setTimeStamp(debugPoints.get(lastIdx).getTimeStamp());
                         } else {
                             position.setTimeStamp(debugPoints.get(point.originalIndex).getTimeStamp());
@@ -574,7 +584,7 @@ public class MainActivity extends ActionBarActivity {
         Cursor cursor = mDBManager.getPoints(turnId);
         int count = cursor.getCount();
         int idx = 0;
-        while(cursor.moveToNext()) {
+        while (cursor.moveToNext()) {
             Position position = new Position(cursor.getDouble(1), cursor.getDouble(2), cursor.getLong(3));
             debugPoints.add(position);
             idx++;
@@ -583,13 +593,13 @@ public class MainActivity extends ActionBarActivity {
         Log.d(TAG, "count:" + count + "- idx:" + idx);
 
         // AsyncTask 출동.
-        mTaskDebug.execute();
+        mTaskDebug.executeOnExecutor(scheduler);
     }
 
     // Encrypt Data with AES
     private void encryptData() {
         try {
-            if(mCypherManager != null) {
+            if (mCypherManager != null) {
                 mEncrypted = mCypherManager.encrypt("Hello World, You Crazy Guy");
                 Toast.makeText(getApplicationContext(), new String(mEncrypted), Toast.LENGTH_SHORT).show();
             }
@@ -602,7 +612,7 @@ public class MainActivity extends ActionBarActivity {
     // Decrypt Data with AES
     private void decryptData() {
         try {
-            if(mCypherManager != null) {
+            if (mCypherManager != null) {
                 String plainText = mCypherManager.decryptStr(mEncrypted);
                 Toast.makeText(getApplicationContext(), plainText, Toast.LENGTH_SHORT).show();
             }
@@ -625,12 +635,12 @@ public class MainActivity extends ActionBarActivity {
 
         Cursor cursor = this.getContentResolver().query(uri, null, null, null, null);
 
-        if(cursor.moveToNext()) {
+        if (cursor.moveToNext()) {
             int startColumn = cursor.getColumnIndex(TrackContract.TurnColumns.START_TIME);
             do {
                 Long start = cursor.getLong(startColumn);
                 Log.e(TAG, start.toString());
-            } while(cursor.moveToNext());
+            } while (cursor.moveToNext());
         }
     }
 }
