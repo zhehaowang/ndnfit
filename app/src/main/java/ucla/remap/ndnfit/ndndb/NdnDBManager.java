@@ -23,6 +23,7 @@ import ucla.remap.ndnfit.NDNFitCommon;
 import ucla.remap.ndnfit.data.Catalog;
 import ucla.remap.ndnfit.data.Position;
 import ucla.remap.ndnfit.data.PositionListProcessor;
+import ucla.remap.ndnfit.network.NetworkConnection;
 
 /**
  * Created by zhanght on 2015/12/27.
@@ -162,6 +163,7 @@ public class NdnDBManager implements Serializable {
                 Log.e("haitao", "finish recording");
                 Log.e("haitao", Integer.toString(buffer.length));
                 getPoints(name);
+                NetworkConnection.insertIntoRepo();
             } catch (JsonProcessingException e) {
                 e.printStackTrace();
             }
