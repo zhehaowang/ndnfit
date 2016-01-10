@@ -1,5 +1,6 @@
 package ucla.remap.ndnfit;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -13,6 +14,7 @@ import android.os.Bundle;
 import android.os.StrictMode;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
+import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -23,6 +25,17 @@ import android.widget.Toast;
 import com.google.maps.GeoApiContext;
 import com.google.maps.RoadsApi;
 import com.google.maps.model.SnappedPoint;
+
+import net.named_data.jndn.Data;
+import net.named_data.jndn.Name;
+import net.named_data.jndn.Sha256WithRsaSignature;
+import net.named_data.jndn.security.certificate.IdentityCertificate;
+import net.named_data.jndn.security.identity.FilePrivateKeyStorage;
+import net.named_data.jndn.security.identity.IdentityManager;
+import net.named_data.jndn.security.identity.IdentityStorage;
+import net.named_data.jndn.security.identity.PrivateKeyStorage;
+import net.named_data.jndn.security.identity.AndroidSqlite3IdentityStorage;
+import net.named_data.jndn.util.Blob;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -46,6 +59,8 @@ public class MainActivity extends ActionBarActivity {
 
     private static final String TAG = "MainActivity";
     public static final int TURN_ACTIVITY = 1002;
+    private static final int AUTHORIZE_REQUEST = 1003;
+    private static final int SIGN_CERT_REQUEST = 1004;
 
     GPSListener mGPSListener;
     DBManager mDBManager;
@@ -78,9 +93,12 @@ public class MainActivity extends ActionBarActivity {
      */
     private static final int PAGINATION_OVERLAP = 5;
 
-    private static final int AUTHORIZE_REQUEST = 0;
-    private static final int RESULT_OK = 0;
-    private static final String APP_CATEGORY = "openmhealth";
+
+    private static final String APP_ID = "ndnfit";
+
+    // Storage for app keys
+    protected static final String DB_NAME = "certDb.db";
+    protected static final String CERT_DIR = "certDir";
 
     protected void showProgressDialg() {
         renderProgressDiag_ = ProgressDialog.show(MainActivity.this, "", "In Rendering...", true);
@@ -91,44 +109,88 @@ public class MainActivity extends ActionBarActivity {
         // Check which request we're responding to
         if (requestCode == AUTHORIZE_REQUEST) {
             // Make sure the request was successful
-            if (resultCode == RESULT_OK) {
-                mAppId = data.getStringExtra("signer_id");
-                Log.e("zhehao", "Identity picked:" + mAppId);
+            if (resultCode == Activity.RESULT_OK) {
+                String signerID = data.getStringExtra("prefix");
+                Name appID = new Name(signerID).append(APP_ID);
+                mAppId = appID.toUri();
+                try {
+                    String encodedString = generateKey(appID.toString());
+                    requestSignature(encodedString, signerID);
+                } catch (Exception e) {
+                    Log.e(TAG, "Exception in identity generation/request");
+                    Log.e(TAG, e.getMessage());
+                }
+            }
+        } else if (requestCode == SIGN_CERT_REQUEST) {
+            if (resultCode == Activity.RESULT_OK) {
+                String signedCert = data.getStringExtra("signed_cert");
+                byte[] decoded = Base64.decode(signedCert, Base64.DEFAULT);
+                Blob blob = new Blob(decoded);
+                Data certData = new Data();
+                try {
+                    certData.wireDecode(blob);
+                    IdentityCertificate certificate = new IdentityCertificate(certData);
+                    String signerKey = ((Sha256WithRsaSignature)certificate.getSignature()).getKeyLocator().getKeyName().toUri();
+                    Log.e("zhehao", signerKey);
+                    Log.e("zhehao", certificate.getName().toUri());
+                    mDBManager.insertID(mAppId, certificate.getName().toUri(), signerKey);
+                } catch (Exception e) {
+                    Log.e(getResources().getString(R.string.app_name), e.getMessage());
+                }
             }
         }
     }
 
-    public class AuthorizeOnClickListener implements DialogInterface.OnClickListener {
-        String mCertName;
-        String mAppCategory;
+    private void requestSignature(String encodedString, String signerID) {
+        Intent i = new Intent("com.ndn.jwtan.identitymanager.SIGN_CERTIFICATE");
+        i.putExtra("cert", encodedString);
+        i.putExtra("signer_id", signerID);
+        i.putExtra("app_id", APP_ID);
+        startActivityForResult(i, SIGN_CERT_REQUEST);
+    }
 
-        public AuthorizeOnClickListener(String certName, String appCategory) {
-            mCertName = certName;
-            mAppCategory = appCategory;
+    private String generateKey(String appID) throws net.named_data.jndn.security.SecurityException {
+        String identity = appID;
+
+        String dbPath = getApplicationContext().getFilesDir().getAbsolutePath() + "/" + MainActivity.DB_NAME;
+        String certDirPath = getApplicationContext().getFilesDir().getAbsolutePath() + "/" + MainActivity.CERT_DIR;
+
+        IdentityStorage identityStorage = new AndroidSqlite3IdentityStorage(dbPath);
+        PrivateKeyStorage privateKeyStorage = new FilePrivateKeyStorage(certDirPath);
+        IdentityManager identityManager = new IdentityManager(identityStorage, privateKeyStorage);
+
+        Name identityName = new Name(identity);
+
+        Name keyName = identityManager.generateRSAKeyPairAsDefault(identityName, true);
+        IdentityCertificate certificate = identityManager.selfSign(keyName);
+
+        String encodedString = Base64.encodeToString(certificate.wireEncode().getImmutableArray(), Base64.DEFAULT);
+        return encodedString;
+    }
+
+    public class AuthorizeOnClickListener implements DialogInterface.OnClickListener {
+        String mAppID;
+
+        public AuthorizeOnClickListener(String appCategory) {
+            mAppID = appCategory;
         }
 
         @Override
         public void onClick(DialogInterface dialog, int which) {
             Intent i = new Intent("com.ndn.jwtan.identitymanager.AUTHORIZE");
-            i.putExtra("cert_name", mCertName);
-            i.putExtra("app_category", mAppCategory);
+            i.putExtra("app_id", mAppID);
             startActivityForResult(i, AUTHORIZE_REQUEST);
         }
-
     }
 
     // @param certName This string is intended to be the application's id in the future, left as "stub" for now
-    public void requestSigningKeyName(String certName, String appCategory) {
+    public void requestAuthorization() {
         AlertDialog.Builder dlgAlert = new AlertDialog.Builder(this);
         dlgAlert.setMessage("Please choose an identity!");
         dlgAlert.setTitle("Choose an identity");
-        dlgAlert.setPositiveButton("Ok", new AuthorizeOnClickListener(certName, appCategory));
+        dlgAlert.setPositiveButton("Ok", new AuthorizeOnClickListener(APP_ID));
         dlgAlert.setCancelable(true);
         dlgAlert.create().show();
-    }
-
-    public String createAppId() {
-        return "Umimplemented";
     }
 
     @Override
@@ -147,19 +209,15 @@ public class MainActivity extends ActionBarActivity {
 
         mNdnDBmanager = NdnDBManager.getInstance();
         mNdnDBmanager.init(this);
-        /*
+
         Cursor idRecords = mDBManager.getIdRecord();
-        int recordCount = idRecords.getCount();
-        if (recordCount > 0) {
-            if (idRecords.getString(2) == "") {
-                requestSigningKeyName("Umimplemented", APP_CATEGORY);
-            } else {
-                mAppId = idRecords.getString(2);
-            }
+        if (idRecords.moveToNext()) {
+            mAppId = idRecords.getString(0);
+            Log.e("zhehao", mAppId);
+            idRecords.close();
         } else {
-            //createAppId();
-            requestSigningKeyName("Umimplemented", APP_CATEGORY);
-        }*/
+            requestAuthorization();
+        }
 
         mGPSListener = new GPSListener(this);
 

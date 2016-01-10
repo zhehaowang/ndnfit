@@ -14,6 +14,7 @@ import android.util.Log;
 import java.io.Serializable;
 import java.util.List;
 
+import ucla.remap.ndnfit.MainActivity;
 import ucla.remap.ndnfit.data.Position;
 
 
@@ -123,6 +124,16 @@ public class DBManager implements Serializable{
     public Cursor getIdRecord() {
         String[] columns = {"app_id", "app_cert_name", "signer_id"};
         return mDB.query(ID_TABLE, columns, null, null, null, null, null);
+    }
+
+    public void insertID(String appID, String certName, String signerID) {
+        ContentValues record = new ContentValues();
+
+        record.put("app_id", appID);
+        record.put("app_cert_name", certName);
+        record.put("signer_id", signerID);
+
+        int result = (int) mDB.insert(ID_TABLE, null, record);
     }
 
     /**
