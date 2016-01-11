@@ -181,6 +181,110 @@ public class BasicInsertion {
    * @param fetchName The name to fetch. If startBlockId and endBlockId are
    * supplied, then the repo will request multiple segments by appending the
    * range of block IDs (segment numbers).
+   * @param onInsertCheckStarted When the request insert command successfully returns,
+   * this calls onInsertStarted.exec().
+   * @param onFailed If the command fails for any reason, this prints an error
+   * and calls onFailed.exec().
+   * @param startBlockId (optional) The starting block ID (segment number) to
+   * fetch. If negative, this is not used.
+   * @param endBlockId (optional) The end block ID (segment number) to fetch. If
+   * negative, this is not used.
+   */
+  static void
+  insertCheck
+  (Face face, Name repoCommandPrefix, Name fetchName,
+   final SimpleCallback onInsertCheckStarted, final SimpleCallback onFailed,
+   long startBlockId, long endBlockId)
+  {
+    // Construct a RepoCommandParameterMessage using the structure in
+    // RepoCommandParameterProto.java which was produced by protoc.
+    RepoCommandParameterMessage.Builder builder =
+            RepoCommandParameterMessage.newBuilder();
+    RepoCommandParameterMessage.RepoCommandParameter.Builder parameterBuilder =
+            builder.getRepoCommandParameterBuilder();
+
+    // Add the Name.
+    RepoCommandParameterMessage.Name.Builder nameBuilder =
+            parameterBuilder.getNameBuilder();
+    for (int i = 0; i < fetchName.size(); ++i)
+      nameBuilder.addComponent(ByteString.copyFrom(fetchName.get(i).getValue().buf()));
+    // Add startBlockId and endBlockId if supplied.
+    if (startBlockId >= 0)
+      parameterBuilder.setStartBlockId(startBlockId);
+    if (endBlockId >= 0)
+      parameterBuilder.setEndBlockId(endBlockId);
+
+    try {
+      // Create the command interest.
+      Interest interest = new Interest(new Name(repoCommandPrefix).append("insert%20check")
+              .append(ProtobufTlv.encode(builder.build())));
+      face.makeCommandInterest(interest);
+
+      // Send the command interest and get the response or timeout.
+      face.expressInterest
+              (interest,
+                      new OnData() {
+                        public void onData(Interest interest, Data data) {
+                          processInsertCheckResponse
+                                  (data.getContent(), onInsertCheckStarted, onFailed);
+                        }},
+                      new OnTimeout() {
+                        public void onTimeout(Interest interest) {
+                          System.out.println("Insert repo command timeout");
+                          onFailed.exec();
+                        }});
+    }
+    catch (Exception e) {
+      System.out.println("exception: " + e.getMessage());
+      onFailed.exec();
+    }
+  }
+
+  /**
+   * Call the main requestInsert where startBlockId and endBlockId are -1 for
+   * not supplied.
+   */
+  static void
+  insertCheck
+  (Face face, Name repoCommandPrefix, Name fetchName,
+   final SimpleCallback onInsertCheckStarted, final SimpleCallback onFailed)
+  {
+    insertCheck
+            (face, repoCommandPrefix, fetchName, onInsertCheckStarted, onFailed, -1, -1);
+  }
+
+  static void
+  processInsertCheckResponse
+          (Blob encodedResponse, final SimpleCallback onInsertCheckStarted,
+           final SimpleCallback onFailed)
+  {
+    RepoCommandResponseMessage.Builder decodedResponse =
+            RepoCommandResponseMessage.newBuilder();
+    try {
+      ProtobufTlv.decode(decodedResponse, encodedResponse);
+    } catch (EncodingException ex) {
+      System.out.println
+              ("Cannot decode the repo command response " + ex.getMessage());
+      onFailed.exec();
+    }
+
+    RepoCommandResponse response = decodedResponse.getRepoCommandResponse();
+    if (response.getStatusCode() == 200)
+      onInsertCheckStarted.exec();
+    else {
+      System.out.println("Got repo command error code " + response.getStatusCode());
+      onFailed.exec();
+    }
+  }
+
+  /**
+   * Send a command interest for the repo to fetch the given fetchName and insert
+   * it in the repo.
+   * @param face The Face used to call makeCommandInterest and expressInterest.
+   * @param repoCommandPrefix The repo command prefix.
+   * @param fetchName The name to fetch. If startBlockId and endBlockId are
+   * supplied, then the repo will request multiple segments by appending the
+   * range of block IDs (segment numbers).
    * @param onInsertStarted When the request insert command successfully returns,
    * this calls onInsertStarted.exec().
    * @param onFailed If the command fails for any reason, this prints an error

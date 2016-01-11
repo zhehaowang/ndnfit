@@ -21,9 +21,10 @@ import java.util.List;
 
 import ucla.remap.ndnfit.NDNFitCommon;
 import ucla.remap.ndnfit.data.Catalog;
+import ucla.remap.ndnfit.data.CatalogCreator;
 import ucla.remap.ndnfit.data.Position;
 import ucla.remap.ndnfit.data.PositionListProcessor;
-import ucla.remap.ndnfit.network.NetworkConnection;
+import ucla.remap.ndnfit.network.NetworkDaemon;
 
 /**
  * Created by zhanght on 2015/12/27.
@@ -163,11 +164,11 @@ public class NdnDBManager implements Serializable {
                 Log.e("haitao", "finish recording");
                 Log.e("haitao", Integer.toString(buffer.length));
                 getPoints(name);
-                NetworkConnection.insertIntoRepo();
             } catch (JsonProcessingException e) {
                 e.printStackTrace();
             }
         }
+        CatalogCreator.createDatalog(plist.getTurn());
     }
 
     public Data getPoints(Name name) {
@@ -202,12 +203,10 @@ public class NdnDBManager implements Serializable {
     }
 
     public Cursor getPoints(long startTimestamp, long interval) {
-        Log.e("haitao", "getPoints 2 called");
         String[] columns = {"timepoint", "data"};
         long endTimestamp = startTimestamp + interval;
         Cursor cursor = mDB.query(POINT_TABLE, columns, "timepoint >= " + startTimestamp +
                 " AND timepoint < " + endTimestamp, null, null, null, "timepoint ASC");
-        Log.e("haitao", "getPoints 2 call finished");
         return cursor;
     }
 
@@ -273,6 +272,46 @@ public class NdnDBManager implements Serializable {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public Data readData(Name name) {
+        if (name.getPrefix(-1).compare(NDNFitCommon.DATA_PREFIX) == 0)
+            return getPoints(name);
+        if (name.getPrefix(-2).compare(NDNFitCommon.CATALOG_PREFIX) == 0)
+            return getCatalog(name);
+        return null;
+    }
+
+    public Cursor getAllPoints() {
+        String[] columns = {"timepoint", "data"};
+        Cursor cursor = mDB.query(POINT_TABLE, columns, null, null, null, null, null);
+        return cursor;
+    }
+
+    public Cursor getAllCatalog() {
+        String[] columns = {"timepoint", "version", "data"};
+        Cursor cursor = mDB.query(CATALOG_TABLE, columns, null, null, null, null, null);
+        return cursor;
+    }
+
+    public void deletePoint(Name name) {
+        if (name.getPrefix(-1).compare(NDNFitCommon.DATA_PREFIX) != 0)
+            return;
+        try {
+            mDB.delete(POINT_TABLE, "timepoint = " + name.get(-1).toTimestamp(), null);
+        } catch (EncodingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteCatalog(Name name) {
+        if (name.getPrefix(-2).compare(NDNFitCommon.CATALOG_PREFIX) != 0)
+            return;
+        try {
+            mDB.delete(CATALOG_TABLE, "timepoint = " + name.get(-2).toTimestamp() + " AND version = " + name.get(-1).toVersion(), null);
+        } catch (EncodingException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
