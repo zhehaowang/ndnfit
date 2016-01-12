@@ -72,6 +72,7 @@ public class MainActivity extends ActionBarActivity {
     ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(4);
 
     String mAppId;
+    Name mAppCertificateName;
 
     // Debug data
     byte[] mEncrypted;
@@ -94,11 +95,11 @@ public class MainActivity extends ActionBarActivity {
     private static final int PAGINATION_OVERLAP = 5;
 
 
-    private static final String APP_ID = "ndnfit";
+    private static final String APP_NAME = "ndnfit";
 
     // Storage for app keys
-    protected static final String DB_NAME = "certDb.db";
-    protected static final String CERT_DIR = "certDir";
+    public static final String DB_NAME = "certDb.db";
+    public static final String CERT_DIR = "certDir";
 
     protected void showProgressDialg() {
         renderProgressDiag_ = ProgressDialog.show(MainActivity.this, "", "In Rendering...", true);
@@ -111,7 +112,7 @@ public class MainActivity extends ActionBarActivity {
             // Make sure the request was successful
             if (resultCode == Activity.RESULT_OK) {
                 String signerID = data.getStringExtra("prefix");
-                Name appID = new Name(signerID).append(APP_ID);
+                Name appID = new Name(signerID).append(APP_NAME);
                 mAppId = appID.toUri();
                 try {
                     String encodedString = generateKey(appID.toString());
@@ -128,12 +129,18 @@ public class MainActivity extends ActionBarActivity {
                 Blob blob = new Blob(decoded);
                 Data certData = new Data();
                 try {
-                    certData.wireDecode(blob);
-                    IdentityCertificate certificate = new IdentityCertificate(certData);
-                    String signerKey = ((Sha256WithRsaSignature)certificate.getSignature()).getKeyLocator().getKeyName().toUri();
-                    Log.e("zhehao", signerKey);
-                    Log.e("zhehao", certificate.getName().toUri());
-                    mDBManager.insertID(mAppId, certificate.getName().toUri(), signerKey);
+                    if (mAppId != "") {
+                        certData.wireDecode(blob);
+                        IdentityCertificate certificate = new IdentityCertificate(certData);
+                        String signerKey = ((Sha256WithRsaSignature)certificate.getSignature()).getKeyLocator().getKeyName().toUri();
+                        Log.e("zhehao", signerKey);
+                        Log.e("zhehao", certificate.getName().toUri());
+                        mDBManager.insertID(mAppId, certificate.getName().toUri(), signerKey);
+                        mAppCertificateName = new Name(certificate.getName());
+                        mNdnDBmanager.setAppID(mAppId, mAppCertificateName);
+                    } else {
+                        Log.e("zhehao", "mAppId empty for result of SIGN_CERT_REQUEST");
+                    }
                 } catch (Exception e) {
                     Log.e(getResources().getString(R.string.app_name), e.getMessage());
                 }
@@ -145,7 +152,7 @@ public class MainActivity extends ActionBarActivity {
         Intent i = new Intent("com.ndn.jwtan.identitymanager.SIGN_CERTIFICATE");
         i.putExtra("cert", encodedString);
         i.putExtra("signer_id", signerID);
-        i.putExtra("app_id", APP_ID);
+        i.putExtra("app_id", APP_NAME);
         startActivityForResult(i, SIGN_CERT_REQUEST);
     }
 
@@ -169,16 +176,16 @@ public class MainActivity extends ActionBarActivity {
     }
 
     public class AuthorizeOnClickListener implements DialogInterface.OnClickListener {
-        String mAppID;
+        String mAppName;
 
-        public AuthorizeOnClickListener(String appCategory) {
-            mAppID = appCategory;
+        public AuthorizeOnClickListener(String appName) {
+            mAppName = appName;
         }
 
         @Override
         public void onClick(DialogInterface dialog, int which) {
             Intent i = new Intent("com.ndn.jwtan.identitymanager.AUTHORIZE");
-            i.putExtra("app_id", mAppID);
+            i.putExtra("app_id", mAppName);
             startActivityForResult(i, AUTHORIZE_REQUEST);
         }
     }
@@ -188,7 +195,7 @@ public class MainActivity extends ActionBarActivity {
         AlertDialog.Builder dlgAlert = new AlertDialog.Builder(this);
         dlgAlert.setMessage("Please choose an identity!");
         dlgAlert.setTitle("Choose an identity");
-        dlgAlert.setPositiveButton("Ok", new AuthorizeOnClickListener(APP_ID));
+        dlgAlert.setPositiveButton("Ok", new AuthorizeOnClickListener(APP_NAME));
         dlgAlert.setCancelable(true);
         dlgAlert.create().show();
     }
@@ -203,6 +210,8 @@ public class MainActivity extends ActionBarActivity {
             StrictMode.setThreadPolicy(policy);
         }
 
+        mAppId = "";
+
         // setup for DB Manager
         mDBManager = DBManager.getInstance();
         mDBManager.init(this);
@@ -213,7 +222,9 @@ public class MainActivity extends ActionBarActivity {
         Cursor idRecords = mDBManager.getIdRecord();
         if (idRecords.moveToNext()) {
             mAppId = idRecords.getString(0);
+            mAppCertificateName = new Name(idRecords.getString(1));
             Log.e("zhehao", mAppId);
+            mNdnDBmanager.setAppID(mAppId, mAppCertificateName);
             idRecords.close();
         } else {
             requestAuthorization();

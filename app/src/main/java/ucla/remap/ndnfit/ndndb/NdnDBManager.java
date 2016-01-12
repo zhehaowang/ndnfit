@@ -13,12 +13,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Name;
 import net.named_data.jndn.encoding.EncodingException;
+import net.named_data.jndn.security.KeyChain;
+import net.named_data.jndn.security.identity.AndroidSqlite3IdentityStorage;
+import net.named_data.jndn.security.identity.FilePrivateKeyStorage;
+import net.named_data.jndn.security.identity.IdentityManager;
+import net.named_data.jndn.security.identity.IdentityStorage;
+import net.named_data.jndn.security.identity.PrivateKeyStorage;
+import net.named_data.jndn.security.policy.SelfVerifyPolicyManager;
 import net.named_data.jndn.util.Blob;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import ucla.remap.ndnfit.MainActivity;
 import ucla.remap.ndnfit.NDNFitCommon;
 import ucla.remap.ndnfit.data.Catalog;
 import ucla.remap.ndnfit.data.CatalogCreator;
@@ -32,6 +40,10 @@ import ucla.remap.ndnfit.network.NetworkDaemon;
 public class NdnDBManager implements Serializable {
     private SQLiteDatabase mDB;
     private Context mCtx;
+    private String mAppID;
+    private Name mAppCertificateName;
+    private KeyChain mKeyChain;
+
     private static final ObjectMapper objectMapper = new ObjectMapper();
 //    private final ElementReader elementReader;
 
@@ -44,6 +56,7 @@ public class NdnDBManager implements Serializable {
     private static NdnDBManager instance = new NdnDBManager();
 
     private NdnDBManager() {
+        mAppID = "";
     }
 
     public void insertData() {
@@ -57,6 +70,24 @@ public class NdnDBManager implements Serializable {
         mCtx = ctx;
         prepareDB();
         createTable();
+    }
+
+    public void setAppID(String appID, Name certName) {
+        mAppID = appID;
+        mAppCertificateName = new Name(certName);
+
+        if (mAppID != "") {
+            String dbPath = mCtx.getFilesDir().getAbsolutePath() + "/" + MainActivity.DB_NAME;
+            String certDirPath = mCtx.getFilesDir().getAbsolutePath() + "/" + MainActivity.CERT_DIR;
+
+            IdentityStorage identityStorage = new AndroidSqlite3IdentityStorage(dbPath);
+            PrivateKeyStorage privateKeyStorage = new FilePrivateKeyStorage(certDirPath);
+            IdentityManager identityManager = new IdentityManager(identityStorage, privateKeyStorage);
+
+            // For now, the verification policy manager, and the face to fetch required cert does not matter
+            // So we use SelfVerifyPolicyManager, and don't call KeyChain.setFace()
+            mKeyChain = new KeyChain(identityManager, new SelfVerifyPolicyManager(identityStorage));
+        }
     }
 
     public void initForTest() {
@@ -151,6 +182,16 @@ public class NdnDBManager implements Serializable {
             try {
                 documentAsString = objectMapper.writeValueAsString(oneList);
                 data.setContent(new Blob(documentAsString));
+
+                if (mAppID != "") {
+                    try {
+                        mKeyChain.sign(data, mAppCertificateName);
+                        Log.e("zhehao", "Signing data point with ID: " + mAppCertificateName.toUri());
+                    } catch (Exception e) {
+                        Log.e("zhehao", "Signing exception: " + e.getMessage());
+                    }
+                }
+
                 record.put("timepoint", oneList.get(0).getTimeStamp());
                 ByteBuffer original = data.wireEncode().buf();
                 ByteBuffer clone = ByteBuffer.allocate(original.capacity());
@@ -232,6 +273,16 @@ public class NdnDBManager implements Serializable {
         try {
             documentAsString = objectMapper.writeValueAsString(catalog.getPointTime());
             data.setContent(new Blob(documentAsString));
+
+            if (mAppID != "") {
+                try {
+                    mKeyChain.sign(data, mAppCertificateName);
+                    Log.e("zhehao", "Signing catalog with ID: " + mAppCertificateName.toUri());
+                } catch (Exception e) {
+                    Log.e("zhehao", "Signing exception: " + e.getMessage());
+                }
+            }
+
             record.put("timepoint", catalog.getCatalogTimePoint());
             record.put("version", version);
             ByteBuffer original = data.wireEncode().buf();

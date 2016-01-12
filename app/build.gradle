@@ -10,7 +10,8 @@ android {
             // dev utilizes minSDKVersion = 21 to allow the Android gradle plugin
             // to pre-dex each module and produce an APK that can be tested on
             // Android Lollipop without time consuming dex merging processes.
-            minSdkVersion 21
+            // temporarily changed to 15 for my pre-lollipop device
+            minSdkVersion 15
         }
         prod {
             // The actual minSdkVersion for the application.
@@ -65,38 +66,34 @@ dependencies {
     compile 'com.google.android.gms:play-services-location:8.4.0'
     compile 'com.google.android.gms:play-services-maps:8.4.0'
     compile 'com.google.maps:google-maps-services:0.1.7'
-    compile ('net.named-data:jndn:0.8') {
-        exclude group: 'com.android.support', module: 'appcompat-v7'
-    }
     compile "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
     compile "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
     compile 'com.github.fge:json-schema-validator:2.2.6'
     compile 'com.android.support:multidex:1.0.1'
-
+    compile ('net.named-data:jndn-android:0.9') {
+        exclude group: 'com.android.support', module: 'appcompat-v7'
+    }
     testCompile 'junit:junit:4.12'
-//    testCompile "org.mockito:mockito-core:1.9.5"
-
-
-//    androidTestCompile ('com.android.support.test:runner:0.4.1') {
-//        exclude module: 'support-annotations'
-//    }
-//    androidTestCompile ('com.android.support.test:rules:0.4.1') {
-//        exclude module: 'support-annotations'
-//    }
-//    // Set this dependency to build and run Espresso tests
-//    androidTestCompile ('com.android.support.test.espresso:espresso-core:2.2.1') {
-//        exclude module: 'support-annotations'
-//    }
-//    // Set this dependency to build and run UI Automator tests
-////    androidTestCompile ('com.android.support.test.uiautomator:uiautomator-v18:2.1.2') {
-////        exclude module: 'support-annotations'
-////    }
-//    //androidTestCompile 'com.android.support:support-annotations:23.0.1'
-//
-//    // Set this dependency if you want to use Hamcrest matching
-//    androidTestCompile 'org.hamcrest:hamcrest-library:1.3'
-//    androidTestCompile 'junit:junit:4.12'
-
+    //    testCompile "org.mockito:mockito-core:1.9.5"
+    //    androidTestCompile ('com.android.support.test:runner:0.4.1') {
+    //        exclude module: 'support-annotations'
+    //    }
+    //    androidTestCompile ('com.android.support.test:rules:0.4.1') {
+    //        exclude module: 'support-annotations'
+    //    }
+    //    // Set this dependency to build and run Espresso tests
+    //    androidTestCompile ('com.android.support.test.espresso:espresso-core:2.2.1') {
+    //        exclude module: 'support-annotations'
+    //    }
+    //    // Set this dependency to build and run UI Automator tests
+    ////    androidTestCompile ('com.android.support.test.uiautomator:uiautomator-v18:2.1.2') {
+    ////        exclude module: 'support-annotations'
+    ////    }
+    //    //androidTestCompile 'com.android.support:support-annotations:23.0.1'
+    //
+    //    // Set this dependency if you want to use Hamcrest matching
+    //    androidTestCompile 'org.hamcrest:hamcrest-library:1.3'
+    //    androidTestCompile 'junit:junit:4.12'
     androidTestCompile('com.android.support:multidex-instrumentation:1.0.1') {
         exclude group: 'com.android.support', module: 'multidex'
     }
