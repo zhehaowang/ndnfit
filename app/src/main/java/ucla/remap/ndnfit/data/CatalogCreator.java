@@ -15,6 +15,7 @@ import ucla.remap.ndnfit.ndndb.NdnDBManager;
  * Created by zhtaoxiang on 1/3/16.
  */
 public class CatalogCreator implements Runnable {
+    private static final String TAG = "CatalogCreator";
     // What is the last time to group the data
     private long lastRunTime = 0;
     private static NdnDBManager mNdnDBManager = NdnDBManager.getInstance();
@@ -25,9 +26,8 @@ public class CatalogCreator implements Runnable {
     }
 
     public void createCatalog() {
-        Log.e("haitao", "createCatalog is called");
+        Log.d(TAG, "createCatalog is called");
         if (lastRunTime == 0) {
-            Log.e("haitao", Long.toString(lastRunTime));
             //This indicates that it is the first time to run the code, do some initiation
             long theStartTime = mNdnDBManager.getFirstPointTimestamp();
             if (theStartTime == 0) { // No such type of data
@@ -38,7 +38,6 @@ public class CatalogCreator implements Runnable {
         // Group all the data till the timepoint (this timepoint should be a
         // multiple of timeInterval) before the current time
         while (lastRunTime + NDNFitCommon.CATALOG_TIME_RANGE < System.currentTimeMillis()) {
-            Log.e("haitao", Long.toString(lastRunTime));
             // get all the data falling in the time interval and
             Cursor cursor = mNdnDBManager.getPoints(lastRunTime,
                     NDNFitCommon.CATALOG_TIME_RANGE);

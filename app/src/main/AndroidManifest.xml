@@ -2,8 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="ucla.remap.ndnfit">
 
-    <uses-library android:name="com.google.android.maps" />
-
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="ucla.remap.ndnfit.permission.MAPS_RECEIVE" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -36,10 +34,10 @@
         </activity>
         <activity
             android:name=".TrackActivity"
-            android:label="@string/title_activity_track"></activity>
+            android:label="@string/title_activity_track" />
         <activity
             android:name=".TurnActivity"
-            android:label="@string/title_activity_turn"></activity>
+            android:label="@string/title_activity_turn" />
         <provider
             android:authorities="edu.ucal.remap.ndnfit"
             android:multiprocess="true"
@@ -50,6 +48,7 @@
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
+        <uses-library android:name="com.google.android.maps" />
 
     </application>
 

@@ -87,7 +87,7 @@ public class GPSListener implements LocationListener{
     }
 
     public void onLocationChanged(Location location) {
-        Log.e("zhehao", "location changed called");
+        Log.d(TAG, "location changed called");
         Double lat = location.getLatitude();
         Double lng = location.getLongitude();
         long pointTime = location.getTime();
