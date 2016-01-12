@@ -1,5 +1,7 @@
 package ucla.remap.ndnfit.network;
 
+import android.util.Log;
+
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Interest;
 import net.named_data.jndn.OnData;
@@ -10,6 +12,7 @@ import ucla.remap.ndnfit.ndndb.NdnDBManager;
  * Created by zhtaoxiang on 1/4/16.
  */
 public class ReceiveData implements OnData {
+    private static final String TAG = "ReceiveData";
 
     public ReceiveData() {
         ndnDBManager = NdnDBManager.getInstance();
@@ -17,7 +20,7 @@ public class ReceiveData implements OnData {
 
     @Override
     public void onData(Interest interest, Data data) {
-        System.out.println("<< D: " + data.getName().toUri());
+        Log.d(TAG, "<< D: " + data.getName().toUri());
         // TODO:Delete the data stored in database
 
         //

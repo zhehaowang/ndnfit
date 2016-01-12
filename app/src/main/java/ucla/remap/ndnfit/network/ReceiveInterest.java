@@ -1,5 +1,7 @@
 package ucla.remap.ndnfit.network;
 
+import android.util.Log;
+
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
@@ -21,6 +23,7 @@ public class ReceiveInterest implements OnInterestCallback {
     private OnTimeout onTimeout;
     private Face face;
     private NdnDBManager ndnDBManager;
+    private static final String TAG = "ReceiveInterest";
 
     public ReceiveInterest(Face face) {
         this.face = face;
@@ -31,17 +34,17 @@ public class ReceiveInterest implements OnInterestCallback {
 
     @Override
     public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
-        System.out.println("<< I: " + interest.toUri());
+        Log.d(TAG, "<< I: " + interest.toUri());
         try {
             Name dataName = interest.getName();
             Data data = ndnDBManager.readData(dataName);
             System.out.println(dataName.toUri());
             if (data != null) {
                 face.putData(data);
-                System.out.println(">> D: " + data.getContent().toString());
+                Log.d(TAG, ">> D: " + data.getContent().toString());
             }
         } catch (IOException ex) {
-            System.out.println("exception: " + ex.getMessage());
+            Log.e(TAG, "exception: " + ex.getMessage());
         }
     }
 }

@@ -21,6 +21,7 @@ import ucla.remap.ndnfit.ndndb.NdnDBManager;
 public class DataUploader implements Runnable {
     private Face face;
     private NdnDBManager ndnDBManager = NdnDBManager.getInstance();
+    private static final String TAG = "DataUploader";
 
     @Override
     public void run() {
@@ -32,7 +33,7 @@ public class DataUploader implements Runnable {
     }
 
     private void insertDataIntoRepo() {
-        Log.e("haitao", "insertDataIntoRepo");
+        Log.d(TAG, "insertDataIntoRepo");
         try {
             Cursor catalogCursor = ndnDBManager.getAllCatalog();
             final List<Name> transferedCatalogs = new ArrayList<>();
@@ -45,7 +46,7 @@ public class DataUploader implements Runnable {
                         (face, NDNFitCommon.REPO_COMMAND_PREFIX, name,
                                 new BasicInsertion.SimpleCallback() {
                                     public void exec() {
-                                        System.out.println("Insert started for " + name.toUri());
+                                        Log.d(TAG,"Insert started for " + name.toUri());
                                         transferedCatalogs.add(name);
                                     }
                                 },
@@ -67,7 +68,7 @@ public class DataUploader implements Runnable {
                         (face, NDNFitCommon.REPO_COMMAND_PREFIX, name,
                                 new BasicInsertion.SimpleCallback() {
                                     public void exec() {
-                                        System.out.println("Insert started for " + name.toUri());
+                                        Log.d(TAG, "Insert started for " + name.toUri());
                                         transferedPoints.add(name);
                                     }
                                 },
@@ -77,50 +78,53 @@ public class DataUploader implements Runnable {
                                     }
                                 });
             }
+            catalogCursor.close();
+            pointCursor.close();
             Thread.sleep(4000);
 
-            //check if the data is inserted into repo successfully
-            for(final Name one : transferedCatalogs) {
-                BasicInsertion.insertCheck(face, NDNFitCommon.REPO_COMMAND_PREFIX, one,
-                        new BasicInsertion.SimpleCallback() {
-                            public void exec() {
-                                System.out.println("Insert succeeded for " + one.toUri());
-                            }
-                        },
-                        new BasicInsertion.SimpleCallback() {
-                            public void exec() {
-                                transferedCatalogs.remove(one);
-                                // For failure, already printed the error.
-                            }
-                        });
-            }
-
-            for(final Name one : transferedPoints) {
-                BasicInsertion.insertCheck(face, NDNFitCommon.REPO_COMMAND_PREFIX, one,
-                        new BasicInsertion.SimpleCallback() {
-                            public void exec() {
-                                System.out.println("Insert succeeded for " + one.toUri());
-                            }
-                        },
-                        new BasicInsertion.SimpleCallback() {
-                            public void exec() {
-                                transferedCatalogs.remove(one);
-                                // For failure, already printed the error.
-                            }
-                        });
-            }
+            //This code does not work correctly
+//            //check if the data is inserted into repo successfully
+//            for(final Name one : transferedCatalogs) {
+//                BasicInsertion.insertCheck(face, NDNFitCommon.REPO_COMMAND_PREFIX, one,
+//                        new BasicInsertion.SimpleCallback() {
+//                            public void exec() {
+//                                Log.d(TAG, "Insert succeeded for " + one.toUri());
+//                            }
+//                        },
+//                        new BasicInsertion.SimpleCallback() {
+//                            public void exec() {
+//                                transferedCatalogs.remove(one);
+//                                // For failure, already printed the error.
+//                            }
+//                        });
+//            }
+//
+//            for(final Name one : transferedPoints) {
+//                BasicInsertion.insertCheck(face, NDNFitCommon.REPO_COMMAND_PREFIX, one,
+//                        new BasicInsertion.SimpleCallback() {
+//                            public void exec() {
+//                                Log.d(TAG, "Insert succeeded for " + one.toUri());
+//                            }
+//                        },
+//                        new BasicInsertion.SimpleCallback() {
+//                            public void exec() {
+//                                transferedCatalogs.remove(one);
+//                                // For failure, already printed the error.
+//                            }
+//                        });
+//            }
 
 
             for(Name one : transferedCatalogs) {
                 ndnDBManager.deleteCatalog(one);
-                System.out.println("Delete" + one.toUri());
+                Log.d(TAG, "Delete" + one.toUri());
             }
             for(Name one : transferedPoints) {
                 ndnDBManager.deletePoint(one);
-                System.out.println("Delete" + one.toUri());
+                Log.d(TAG, "Delete" + one.toUri());
             }
         } catch (Exception e) {
-            System.out.println("exception: " + e.getMessage());
+            Log.e(TAG, "exception: " + e.getMessage());
         }
     }
 }

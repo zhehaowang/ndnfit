@@ -14,7 +14,7 @@ public class NDNFitCommon {
 
     public static final Name CONFIRM_PREFIX = new Name(DATA_PREFIX).append("comfirm");
 
-    public static final Name REPO_COMMAND_PREFIX = new Name("/example/repo/1");;
+    public static final Name REPO_COMMAND_PREFIX = new Name("/ndn/edu/ucla/remap/ndnfit/repo");;
 
     public static final long CATALOG_TIME_RANGE = TimeUnit.MINUTES.toMillis(10);
 

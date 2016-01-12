@@ -1,6 +1,7 @@
 package ucla.remap.ndnfit.network;
 
 import android.os.AsyncTask;
+import android.util.Log;
 
 import net.named_data.jndn.Face;
 import net.named_data.jndn.Name;
@@ -23,6 +24,7 @@ import ucla.remap.ndnfit.ndndb.NdnDBManager;
  * Created by zhtaoxiang on 1/3/16.
  */
 public class NetworkDaemon {
+    private static final String TAG = "NetworkDaemon";
     private static NdnDBManager mNdnDBManager;
     private static final Face face = new Face();
 //    /////////////////////////////////
@@ -111,7 +113,7 @@ public class NetworkDaemon {
             networkTask.executeOnExecutor(scheduler);
 
         } catch (SecurityException e) {
-            System.out.println("exception: " + e.getMessage());
+            Log.e(TAG, "exception: " + e.getMessage());
         }
     }
 

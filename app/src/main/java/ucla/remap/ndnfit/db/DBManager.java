@@ -159,9 +159,6 @@ public class DBManager implements Serializable{
 
     public void recordPoints(List<Position> positionList) {
         ContentValues record = new ContentValues();
-
-        Log.e("zhehao", "record points called");
-        Log.e("zhehao", Integer.toString(positionList.size()));
         if (positionList.size() == 0) {
             return;
         }

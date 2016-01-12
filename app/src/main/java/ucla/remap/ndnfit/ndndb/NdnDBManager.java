@@ -59,9 +59,6 @@ public class NdnDBManager implements Serializable {
         mAppID = "";
     }
 
-    public void insertData() {
-    }
-
     public static NdnDBManager getInstance() {
         return instance;
     }
@@ -163,13 +160,14 @@ public class NdnDBManager implements Serializable {
                             + " timepoint TIMESTAMP, "
                             + " version integer, "
                             + " data BLOB NOT NULL, "
+                            + " uploaded integer DEFAULT 0, "
                             + " primary key (timepoint, version));"
             );
         }
     }
 
     public void recordPoints(List<Position> positionList) {
-        Log.e("haitao", "recordPoints called");
+        Log.d(TAG, "recordPoints called");
         PositionListProcessor plist = new PositionListProcessor();
         plist.setItems(positionList);
         plist.processItems();
@@ -202,9 +200,8 @@ public class NdnDBManager implements Serializable {
                 byte[] buffer = clone.array();
                 record.put("data", buffer);
                 mDB.insert(POINT_TABLE, null, record);
-                Log.e("haitao", "finish recording");
-                Log.e("haitao", Integer.toString(buffer.length));
-                getPoints(name);
+                Log.d(TAG, "finish recording");
+                Log.d(TAG, Integer.toString(buffer.length));
             } catch (JsonProcessingException e) {
                 e.printStackTrace();
             }
@@ -224,8 +221,6 @@ public class NdnDBManager implements Serializable {
                 byte[] raw = cursor.getBlob(1);
                 Data data = new Data();
                 data.wireDecode(new Blob(raw));
-                Log.e("haitao", data.getName().toUri());
-                Log.e("haitao", data.getContent().toString());
                 return data;
             }
         } catch (EncodingException e) {
@@ -252,9 +247,9 @@ public class NdnDBManager implements Serializable {
     }
 
     public void insertCatalog(Catalog catalog) {
-        Log.e("haitao", "insertCatalog called");
+        Log.d(TAG, "insertCatalog called");
         //check the old version
-        String[] columns = {"timepoint", "version", "data"};
+        String[] columns = {"timepoint", "version", "data", "uploaded"};
         int version = 1;
         Cursor cursor = mDB.query(CATALOG_TABLE, columns, "timepoint = " + catalog.getCatalogTimePoint(),
                 null, null, null, "version DESC");
@@ -293,10 +288,10 @@ public class NdnDBManager implements Serializable {
             clone.flip();
             byte[] buffer = clone.array();
             record.put("data", buffer);
+            record.put("uploaded", 0);
             mDB.insert(CATALOG_TABLE, null, record);
-            Log.e("haitao", "finish recording");
-            Log.e("haitao", Integer.toString(buffer.length));
-            getCatalog(name);
+            Log.d(TAG, "finish recording");
+            Log.d(TAG, Integer.toString(buffer.length));
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
@@ -305,7 +300,7 @@ public class NdnDBManager implements Serializable {
     public Data getCatalog(Name name) {
         if (name.getPrefix(-2).compare(NDNFitCommon.CATALOG_PREFIX) != 0)
             return null;
-        String[] columns = {"timepoint", "version", "data"};
+        String[] columns = {"timepoint", "version", "data", "uploaded"};
 
 
         try {
@@ -315,8 +310,6 @@ public class NdnDBManager implements Serializable {
                 byte[] raw = cursor.getBlob(2);
                 Data data = new Data();
                 data.wireDecode(new Blob(raw));
-                Log.e("haitao", data.getName().toUri());
-                Log.e("haitao", data.getContent().toString());
                 return data;
             }
         } catch (EncodingException e) {
@@ -340,8 +333,8 @@ public class NdnDBManager implements Serializable {
     }
 
     public Cursor getAllCatalog() {
-        String[] columns = {"timepoint", "version", "data"};
-        Cursor cursor = mDB.query(CATALOG_TABLE, columns, null, null, null, null, null);
+        String[] columns = {"timepoint", "version", "data", "uploaded"};
+        Cursor cursor = mDB.query(CATALOG_TABLE, columns, "uploaded = 0", null, null, null, null);
         return cursor;
     }
 
@@ -359,7 +352,10 @@ public class NdnDBManager implements Serializable {
         if (name.getPrefix(-2).compare(NDNFitCommon.CATALOG_PREFIX) != 0)
             return;
         try {
-            mDB.delete(CATALOG_TABLE, "timepoint = " + name.get(-2).toTimestamp() + " AND version = " + name.get(-1).toVersion(), null);
+            ContentValues record = new ContentValues();
+            record.put("uploaded", 1);
+            mDB.update(CATALOG_TABLE, record, "timepoint = " + name.get(-2).toTimestamp() + " AND version = " + name.get(-1).toVersion(), null);
+//            mDB.delete(CATALOG_TABLE, "timepoint = " + name.get(-2).toTimestamp() + " AND version = " + name.get(-1).toVersion(), null);
         } catch (EncodingException e) {
             e.printStackTrace();
         }

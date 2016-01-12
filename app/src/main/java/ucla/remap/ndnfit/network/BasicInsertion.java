@@ -19,6 +19,8 @@
 
 package ucla.remap.ndnfit.network;
 
+import android.util.Log;
+
 import com.google.protobuf.ByteString;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -54,6 +56,7 @@ import ucla.remap.ndnfit.network.RepoCommandResponseProto
  * See main() for more details.
  */
 public class BasicInsertion {
+  private static final String TAG = "BasicInsertion";
   // Convert the int array to a ByteBuffer.
   private static ByteBuffer
   toBuffer(int[] array)
@@ -221,6 +224,7 @@ public class BasicInsertion {
       face.makeCommandInterest(interest);
 
       // Send the command interest and get the response or timeout.
+      System.out.println(interest.getName().toUri());
       face.expressInterest
               (interest,
                       new OnData() {
@@ -230,12 +234,12 @@ public class BasicInsertion {
                         }},
                       new OnTimeout() {
                         public void onTimeout(Interest interest) {
-                          System.out.println("Insert repo command timeout");
+                          Log.w(TAG, "check insert command timeout");
                           onFailed.exec();
                         }});
     }
     catch (Exception e) {
-      System.out.println("exception: " + e.getMessage());
+      Log.e(TAG, "exception: " + e.getMessage());
       onFailed.exec();
     }
   }
@@ -263,8 +267,8 @@ public class BasicInsertion {
     try {
       ProtobufTlv.decode(decodedResponse, encodedResponse);
     } catch (EncodingException ex) {
-      System.out.println
-              ("Cannot decode the repo command response " + ex.getMessage());
+      Log.e
+              (TAG, "Cannot decode the repo command response " + ex.getMessage());
       onFailed.exec();
     }
 
@@ -272,7 +276,7 @@ public class BasicInsertion {
     if (response.getStatusCode() == 200)
       onInsertCheckStarted.exec();
     else {
-      System.out.println("Got repo command error code " + response.getStatusCode());
+      Log.e(TAG, "Got repo command error code " + response.getStatusCode());
       onFailed.exec();
     }
   }
@@ -334,12 +338,12 @@ public class BasicInsertion {
            }},
          new OnTimeout() {
            public void onTimeout(Interest interest) {
-             System.out.println("Insert repo command timeout");
+             Log.w(TAG, "Insert repo command timeout");
              onFailed.exec();
            }});
     }
     catch (Exception e) {
-      System.out.println("exception: " + e.getMessage());
+      Log.e(TAG, "exception: " + e.getMessage());
       onFailed.exec();
     }
   }
@@ -367,8 +371,8 @@ public class BasicInsertion {
     try {
       ProtobufTlv.decode(decodedResponse, encodedResponse);
     } catch (EncodingException ex) {
-      System.out.println
-        ("Cannot decode the repo command response " + ex.getMessage());
+      Log.e
+        (TAG, "Cannot decode the repo command response " + ex.getMessage());
       onFailed.exec();
     }
 
@@ -376,7 +380,7 @@ public class BasicInsertion {
     if (response.getStatusCode() == 100)
       onInsertStarted.exec();
     else {
-      System.out.println("Got repo command error code " + response.getStatusCode());
+      Log.e(TAG, "Got repo command error code " + response.getStatusCode());
       onFailed.exec();
     }
   }
@@ -407,7 +411,7 @@ public class BasicInsertion {
       (Name prefix, Interest interest, Face face, long interestFilterId,
        InterestFilter filter)
     {
-      System.out.println("Got interest " + interest.toUri());
+      Log.d(TAG, "Got interest " + interest.toUri());
 
       // Make and sign a Data packet with the interest name.
       Data data = new Data(interest.getName());
@@ -417,7 +421,7 @@ public class BasicInsertion {
         keyChain_.sign(data, certificateName_);
       } catch (SecurityException ex) {
         // We don't expect this to happen
-        System.out.println("Error while signing the data " + ex.getMessage());
+        Log.e(TAG, "Error while signing the data " + ex.getMessage());
         return;
       }
 
@@ -425,10 +429,10 @@ public class BasicInsertion {
         face.putData(data);
       } catch (IOException ex) {
         // We don't expect this to happen
-        System.out.println("Error while sending the data " + ex.getMessage());
+        Log.e(TAG, "Error while sending the data " + ex.getMessage());
         return;
       }
-      System.out.println("Sent data packet " + data.getName().toUri());
+      Log.d(TAG, "Sent data packet " + data.getName().toUri());
 
       nSegmentsSent_ += 1;
       if (nSegmentsSent_ >= (endBlockId_ - startBlockId_) + 1)
@@ -496,22 +500,22 @@ public class BasicInsertion {
          new SimpleCallback() {
            public void exec() {
              enabled[0] = false;
-             System.out.println("All data was inserted.");
+             Log.d(TAG, "All data was inserted.");
            }});
-      System.out.println("Register prefix " + fetchPrefix.toUri());
+      Log.d(TAG, "Register prefix " + fetchPrefix.toUri());
       face.registerPrefix
         (fetchPrefix, produceSegments,
          new OnRegisterFailed() {
            public void onRegisterFailed(Name prefix) {
              enabled[0] = false;
-             System.out.println("Register failed for prefix " + prefix.toUri());
+             Log.w(TAG, "Register failed for prefix " + prefix.toUri());
            }});
 
       requestInsert
         (face, repoCommandPrefix, fetchPrefix,
          new SimpleCallback() {
            public void exec() {
-             System.out.println("Insert started for " + fetchPrefix.toUri());
+             Log.d(TAG,"Insert started for " + fetchPrefix.toUri());
            }},
          new SimpleCallback() {
            public void exec() {
@@ -530,7 +534,7 @@ public class BasicInsertion {
       }
     }
     catch (Exception e) {
-      System.out.println("exception: " + e.getMessage());
+      Log.e(TAG, "exception: " + e.getMessage());
     }
   }
 }

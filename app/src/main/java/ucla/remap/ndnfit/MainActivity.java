@@ -471,7 +471,7 @@ public class MainActivity extends ActionBarActivity {
 
     private void resetData() {
         mDBManager.resetData();
-        mNdnDBmanager.resetData();
+//        mNdnDBmanager.resetData();
     }
 
     /**
@@ -638,10 +638,8 @@ public class MainActivity extends ActionBarActivity {
                         Log.d(TAG, "Render " + point.originalIndex + "->" + idx);
                         idx++;
                     }
-                    Log.e("haitao", "start to record points");
                     mDBManager.recordPoints(renderedPoints);
                     mNdnDBmanager.recordPoints(renderedPoints);
-                    Log.e("haitao", "end to record points");
                 }
             };
 
