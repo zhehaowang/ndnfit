@@ -185,6 +185,7 @@ public class NdnDBManager implements Serializable {
                     try {
                         mKeyChain.sign(data, mAppCertificateName);
                         Log.e("zhehao", "Signing data point with ID: " + mAppCertificateName.toUri());
+                        Log.e("zhehao", "Produced: " + name.toUri());
                     } catch (Exception e) {
                         Log.e("zhehao", "Signing exception: " + e.getMessage());
                     }

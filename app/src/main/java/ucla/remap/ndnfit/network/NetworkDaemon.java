@@ -43,7 +43,7 @@ public class NetworkDaemon {
     public static void startNetworkService(ScheduledExecutorService scheduler) {
         // deal with data requests
         try {
-
+            // Zhehao: here we don't necessarily associate the appID with the face, it's okay to use a temporary ID
             MemoryIdentityStorage identityStorage = new MemoryIdentityStorage();
             MemoryPrivateKeyStorage privateKeyStorage
                     = new MemoryPrivateKeyStorage();

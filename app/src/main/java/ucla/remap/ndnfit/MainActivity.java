@@ -133,11 +133,11 @@ public class MainActivity extends ActionBarActivity {
                         certData.wireDecode(blob);
                         IdentityCertificate certificate = new IdentityCertificate(certData);
                         String signerKey = ((Sha256WithRsaSignature)certificate.getSignature()).getKeyLocator().getKeyName().toUri();
-                        Log.e("zhehao", signerKey);
-                        Log.e("zhehao", certificate.getName().toUri());
+                        Log.d(TAG, "Signer key name " + signerKey + "; App certificate name: " + certificate.getName().toUri());
                         mDBManager.insertID(mAppId, certificate.getName().toUri(), signerKey);
                         mAppCertificateName = new Name(certificate.getName());
                         mNdnDBmanager.setAppID(mAppId, mAppCertificateName);
+                        NDNFitCommon.setDataPrefix(new Name(mAppId).getPrefix(-1));
                     } else {
                         Log.e("zhehao", "mAppId empty for result of SIGN_CERT_REQUEST");
                     }
@@ -157,8 +157,6 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private String generateKey(String appID) throws net.named_data.jndn.security.SecurityException {
-        String identity = appID;
-
         String dbPath = getApplicationContext().getFilesDir().getAbsolutePath() + "/" + MainActivity.DB_NAME;
         String certDirPath = getApplicationContext().getFilesDir().getAbsolutePath() + "/" + MainActivity.CERT_DIR;
 
@@ -166,7 +164,7 @@ public class MainActivity extends ActionBarActivity {
         PrivateKeyStorage privateKeyStorage = new FilePrivateKeyStorage(certDirPath);
         IdentityManager identityManager = new IdentityManager(identityStorage, privateKeyStorage);
 
-        Name identityName = new Name(identity);
+        Name identityName = new Name(appID);
 
         Name keyName = identityManager.generateRSAKeyPairAsDefault(identityName, true);
         IdentityCertificate certificate = identityManager.selfSign(keyName);
@@ -225,6 +223,8 @@ public class MainActivity extends ActionBarActivity {
             mAppCertificateName = new Name(idRecords.getString(1));
             Log.e("zhehao", mAppId);
             mNdnDBmanager.setAppID(mAppId, mAppCertificateName);
+            // omit the app name component from mAppId
+            NDNFitCommon.setDataPrefix(new Name(mAppId).getPrefix(-1));
             idRecords.close();
         } else {
             requestAuthorization();
