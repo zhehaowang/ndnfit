@@ -19,7 +19,9 @@ Jan 20, 2015 - v0.1
   * Step 2: choose “faces” or “routes”
   * Step 3: click the “+” to add face after choosing "faces"
   * Step 4: click the “+” to add route after choosing "routes"
-![screenshot](docs/NDNFit.png)
+
+![NFD-Android screenshot](docs/NFD-Android.png)
+
 * Open identity manager, request an NDNFit identity (see the <a href = "https://github.com/zhehaowang/android-identity-manager">steps</a>)
 * Open ndnfit to capture and upload data
   * Choose an identity to use with the help of Identity Manager
@@ -28,6 +30,8 @@ Jan 20, 2015 - v0.1
   * Click “show result” to show path on google map locally
   * Click “Reset Data” to clear local cache
   * “Encrypt” and “Decrypt” function have not been added yet
+
+![NDNFit screenshot](docs/NDNFit.png)
 
 ### Known Issues:
 * Nfd-Android stops working after about 20 minutes unless refresh it periodically
