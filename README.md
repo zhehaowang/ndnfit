@@ -31,7 +31,7 @@ Jan 20, 2015 - v0.1
   * Click “Reset Data” to clear local cache
   * “Encrypt” and “Decrypt” function have not been added yet
 
-![NDNFit screenshot](docs/NDNFit.png)
+<p align="center"><img src ="docs/NDNFit.png" /></p>
 
 ### Known Issues:
 * Nfd-Android stops working after about 20 minutes unless refresh it periodically
