@@ -4,8 +4,6 @@ NDNFit Android application based on professor Jung's work. Did not fork as we do
 
 Jan 20, 2015 - v0.1
 
-Screen recording on Android 4.2.1: <a href = "https://vimeo.com/151273751"> here </a>
-
 ### What it does:
 * Capture time-location data (Use NETWORK\_PROVIDER instead of GPS\_PROVIDER for GPS for now)
 * Use the identity provided by <a href = "https://github.com/zhehaowang/android-identity-manager/releases"> Android Identity Manager </a> to sign the captured data
@@ -21,6 +19,7 @@ Screen recording on Android 4.2.1: <a href = "https://vimeo.com/151273751"> here
   * Step 2: choose “faces” or “routes”
   * Step 3: click the “+” to add face after choosing "faces"
   * Step 4: click the “+” to add route after choosing "routes"
+![screenshot](docs/NDNFit.png)
 * Open identity manager, request an NDNFit identity (see the <a href = "https://github.com/zhehaowang/android-identity-manager">steps</a>)
 * Open ndnfit to capture and upload data
   * Choose an identity to use with the help of Identity Manager
