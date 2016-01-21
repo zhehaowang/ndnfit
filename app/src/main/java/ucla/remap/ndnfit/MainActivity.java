@@ -278,6 +278,7 @@ public class MainActivity extends ActionBarActivity {
                             // Move to Track Activity
                             protected void onPostExecute(List<SnappedPoint> snappedPoints) {
                                 // 검색창이 열려있으면 닫음.
+                                // TODO: exception thrown here in PostExecute about window bindings
                                 if (renderProgressDiag_ != null && renderProgressDiag_.isShowing()) {
                                     renderProgressDiag_.dismiss();
                                 }
