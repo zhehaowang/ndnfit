@@ -23,7 +23,7 @@ public class SchemaTest {
         test.addItem(new TimeLocation(2,2,2,2));
         test.addItem(new TimeLocation(2, 2, 2, System.currentTimeMillis()));
         String documentAsString = objectMapper.writeValueAsString(test.getItems());
-        System.out.print(documentAsString);
+        System.out.println(documentAsString);
         TimeLocationFormatTester tester = new TimeLocationFormatTester();
         assert(tester.isValid(test));
     }
@@ -36,7 +36,7 @@ public class SchemaTest {
         test.addItem(new Position(2,2,2));
         test.addItem(new Position(2,2,System.currentTimeMillis()));
         String documentAsString = objectMapper.writeValueAsString(test.getItems());
-        System.out.print(documentAsString);
+        System.out.println(documentAsString);
         PositionFormatTester tester = new PositionFormatTester();
         assert(tester.isValid(test));
     }
@@ -47,7 +47,7 @@ public class SchemaTest {
         turn.setStartTimeStamp(1);
         turn.setFinishTimeStamp(2);
         String documentAsString = objectMapper.writeValueAsString(turn);
-        System.out.print(documentAsString);
+        System.out.println(documentAsString);
         TurnFormatTester tester = new TurnFormatTester();
         assert(tester.isValid(turn));
     }
@@ -59,8 +59,20 @@ public class SchemaTest {
         catalog.addPointTime(1);
         catalog.addPointTime(2);
         String documentAsString = objectMapper.writeValueAsString(catalog.getPointTime());
-        System.out.print(documentAsString);
+        System.out.println(documentAsString);
         CatalogFormatTester tester = new CatalogFormatTester();
         assert(tester.isValid(catalog));
+    }
+
+    @Test
+    public void testUpdateInfo() throws JsonProcessingException {
+        UpdateInfoList updateInfoList = new UpdateInfoList();
+        updateInfoList.addItem(new UpdateInfo(1,2));
+        updateInfoList.addItem(new UpdateInfo(2,3));
+        updateInfoList.addItem(new UpdateInfo(3,2));
+        String documentAsString = objectMapper.writeValueAsString(updateInfoList.getItems());
+        System.out.println(documentAsString);
+        UpdateInfoTester tester = new UpdateInfoTester();
+        assert(tester.isValid(updateInfoList));
     }
 }

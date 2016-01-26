@@ -217,18 +217,19 @@ public class MainActivity extends ActionBarActivity {
         mNdnDBmanager = NdnDBManager.getInstance();
         mNdnDBmanager.init(this);
 
-        Cursor idRecords = mDBManager.getIdRecord();
-        if (idRecords.moveToNext()) {
-            mAppId = idRecords.getString(0);
-            mAppCertificateName = new Name(idRecords.getString(1));
-            Log.e("zhehao", mAppId);
-            mNdnDBmanager.setAppID(mAppId, mAppCertificateName);
-            // omit the app name component from mAppId
-            NDNFitCommon.setDataPrefix(new Name(mAppId).getPrefix(-1));
-            idRecords.close();
-        } else {
-            requestAuthorization();
-        }
+        //TODO: temporarily comment this part to simplify the debug process, need to get it back
+//        Cursor idRecords = mDBManager.getIdRecord();
+//        if (idRecords.moveToNext()) {
+//            mAppId = idRecords.getString(0);
+//            mAppCertificateName = new Name(idRecords.getString(1));
+//            Log.e("zhehao", mAppId);
+//            mNdnDBmanager.setAppID(mAppId, mAppCertificateName);
+//            // omit the app name component from mAppId
+//            NDNFitCommon.setDataPrefix(new Name(mAppId).getPrefix(-1));
+//            idRecords.close();
+//        } else {
+//            requestAuthorization();
+//        }
 
         mGPSListener = new GPSListener(this);
 

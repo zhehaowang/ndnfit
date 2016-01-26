@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
 
-  "description": "This schema represents time-location data (GPS traces). It has a series of GPS points in a list of the form [{point1}, ..., {pointn}]  where each {point} list is {timestamp, latitude, longitude, altitude} for now",
+  "description": "This schema represents time-location data (GPS traces). It has a series of GPS points in a list of the form [{point1}, ..., {pointn}]  where each {point} list is {latitude, longitude, timeStamp} for now",
 
   "type": "array",
   "items": {

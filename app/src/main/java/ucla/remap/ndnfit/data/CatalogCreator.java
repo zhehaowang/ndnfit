@@ -60,6 +60,8 @@ public class CatalogCreator implements Runnable {
     public static void createDatalog(Turn turn) {
         long startTimepoint = (turn.getStartTimeStamp() / NDNFitCommon.CATALOG_TIME_RANGE) * NDNFitCommon.CATALOG_TIME_RANGE;
         long endTimepoint = (turn.getFinishTimeStamp() / NDNFitCommon.CATALOG_TIME_RANGE + 1) * NDNFitCommon.CATALOG_TIME_RANGE;
+        UpdateInfoList updateInfoList = new UpdateInfoList();
+        int version = 1;
         while(startTimepoint < endTimepoint) {
             Cursor cursor = mNdnDBManager.getPoints(startTimepoint,
                     NDNFitCommon.CATALOG_TIME_RANGE);
@@ -73,7 +75,15 @@ public class CatalogCreator implements Runnable {
             while (cursor.moveToNext()) {
                 catalog.addPointTime(cursor.getLong(0));
             }
-            mNdnDBManager.insertCatalog(catalog);
+            version = mNdnDBManager.insertCatalog(catalog);
+            if(version != 1) {
+                UpdateInfo updateInfo =
+                        new UpdateInfo(startTimepoint - NDNFitCommon.CATALOG_TIME_RANGE, version);
+                updateInfoList.addItem(updateInfo);
+            }
+        }
+        if(updateInfoList.getItems().size() != 0) {
+            mNdnDBManager.insertUpdateInfo(updateInfoList);
         }
     }
 }

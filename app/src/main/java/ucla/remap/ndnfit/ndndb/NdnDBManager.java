@@ -32,6 +32,7 @@ import ucla.remap.ndnfit.data.Catalog;
 import ucla.remap.ndnfit.data.CatalogCreator;
 import ucla.remap.ndnfit.data.Position;
 import ucla.remap.ndnfit.data.PositionListProcessor;
+import ucla.remap.ndnfit.data.UpdateInfoList;
 import ucla.remap.ndnfit.network.NetworkDaemon;
 
 /**
@@ -52,6 +53,7 @@ public class NdnDBManager implements Serializable {
     private static final String POINT_TABLE = "point_table";
     private static final String TURN_TABLE = "turn_table";
     private static final String CATALOG_TABLE = "catalog_table";
+    private static final String UPDATE_INFO_TABLE = "update_info_table";
 
     private static NdnDBManager instance = new NdnDBManager();
 
@@ -73,7 +75,7 @@ public class NdnDBManager implements Serializable {
         mAppID = appID;
         mAppCertificateName = new Name(certName);
 
-        if (mAppID != "") {
+        if (mAppID != null && mAppID != "") {
             String dbPath = mCtx.getFilesDir().getAbsolutePath() + "/" + MainActivity.DB_NAME;
             String certDirPath = mCtx.getFilesDir().getAbsolutePath() + "/" + MainActivity.CERT_DIR;
 
@@ -101,7 +103,7 @@ public class NdnDBManager implements Serializable {
      *
      * @return true if the tables are existed or false.
      */
-    public boolean isTurnTableCreated() {
+    protected boolean isTurnTableCreated() {
         Cursor cursor = mDB.rawQuery("select DISTINCT tbl_name from sqlite_master where tbl_name = '" + TURN_TABLE + "'", null);
         if (cursor != null) {
             if (cursor.getCount() > 0) {
@@ -127,6 +129,18 @@ public class NdnDBManager implements Serializable {
 
     protected boolean isCatalogTableCreated() {
         Cursor cursor = mDB.rawQuery("select DISTINCT tbl_name from sqlite_master where tbl_name = '" + CATALOG_TABLE + "'", null);
+        if (cursor != null) {
+            if (cursor.getCount() > 0) {
+                cursor.close();
+                return true;
+            }
+            cursor.close();
+        }
+        return false;
+    }
+
+    protected boolean isUpdateInfoTableCreated() {
+        Cursor cursor = mDB.rawQuery("select DISTINCT tbl_name from sqlite_master where tbl_name = '" + UPDATE_INFO_TABLE + "'", null);
         if (cursor != null) {
             if (cursor.getCount() > 0) {
                 cursor.close();
@@ -164,6 +178,12 @@ public class NdnDBManager implements Serializable {
                             + " primary key (timepoint, version));"
             );
         }
+
+        if (!isUpdateInfoTableCreated()) {
+            mDB.execSQL("create table " + UPDATE_INFO_TABLE + "("
+                    + " sequence integer, "
+                    + " data BLOB NOT NULL);");
+        }
     }
 
     public void recordPoints(List<Position> positionList) {
@@ -181,7 +201,7 @@ public class NdnDBManager implements Serializable {
                 documentAsString = objectMapper.writeValueAsString(oneList);
                 data.setContent(new Blob(documentAsString));
 
-                if (mAppID != "") {
+                if (mAppID != null && mAppID != "") {
                     try {
                         mKeyChain.sign(data, mAppCertificateName);
                         Log.e("zhehao", "Signing data point with ID: " + mAppCertificateName.toUri());
@@ -247,7 +267,7 @@ public class NdnDBManager implements Serializable {
         return cursor;
     }
 
-    public void insertCatalog(Catalog catalog) {
+    public int insertCatalog(Catalog catalog) {
         Log.d(TAG, "insertCatalog called");
         //check the old version
         String[] columns = {"timepoint", "version", "data", "uploaded"};
@@ -270,7 +290,7 @@ public class NdnDBManager implements Serializable {
             documentAsString = objectMapper.writeValueAsString(catalog.getPointTime());
             data.setContent(new Blob(documentAsString));
 
-            if (mAppID != "") {
+            if (mAppID != null && mAppID != "") {
                 try {
                     mKeyChain.sign(data, mAppCertificateName);
                     Log.e("zhehao", "Signing catalog with ID: " + mAppCertificateName.toUri());
@@ -296,6 +316,7 @@ public class NdnDBManager implements Serializable {
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
+        return version;
     }
 
     public Data getCatalog(Name name) {
@@ -319,11 +340,79 @@ public class NdnDBManager implements Serializable {
         return null;
     }
 
+    public void insertUpdateInfo(UpdateInfoList updateInfoList) {
+        Log.d(TAG, "insertUpdateInfo called");
+        //check the old version
+        String[] columns = {"sequence", "data"};
+        long sequence = 1;
+        Cursor cursor = mDB.query(UPDATE_INFO_TABLE, columns, null,
+                null, null, null, "sequence DESC");
+        if (cursor.moveToNext()) {
+            sequence = cursor.getInt(1) + 1;
+        }
+
+        //insert
+        ContentValues record = new ContentValues();
+        Data data = new Data();
+        Name name = new Name(NDNFitCommon.UPDATE_INFO_PREFIX).appendSequenceNumber(sequence);
+        data.setName(name);
+        String documentAsString = null;
+        try {
+            documentAsString = objectMapper.writeValueAsString(updateInfoList.getItems());
+            data.setContent(new Blob(documentAsString));
+            if (mAppID != null && mAppID != "") {
+                try {
+                    mKeyChain.sign(data, mAppCertificateName);
+                    Log.e("zhehao", "Signing catalog with ID: " + mAppCertificateName.toUri());
+                } catch (Exception e) {
+                    Log.e("zhehao", "Signing exception: " + e.getMessage());
+                }
+            }
+
+            record.put("sequence", sequence);
+            ByteBuffer original = data.wireEncode().buf();
+            ByteBuffer clone = ByteBuffer.allocate(original.capacity());
+            original.rewind();//copy from the beginning
+            clone.put(original);
+            original.rewind();
+            clone.flip();
+            byte[] buffer = clone.array();
+            record.put("data", buffer);
+            mDB.insert(UPDATE_INFO_TABLE, null, record);
+            Log.d(TAG, "finish recording");
+            Log.d(TAG, Integer.toString(buffer.length));
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Data getUpdateInfo(Name name) {
+        if (name.getPrefix(-1).compare(NDNFitCommon.UPDATE_INFO_PREFIX) != 0)
+            return null;
+        String[] columns = {"sequence", "data"};
+
+
+        try {
+            Cursor cursor = mDB.query(UPDATE_INFO_TABLE, columns, "sequence = " + name.get(-1).toSequenceNumber(), null, null, null, null);
+            if (cursor.moveToNext()) {
+                byte[] raw = cursor.getBlob(1);
+                Data data = new Data();
+                data.wireDecode(new Blob(raw));
+                return data;
+            }
+        } catch (EncodingException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public Data readData(Name name) {
         if (name.getPrefix(-1).compare(NDNFitCommon.DATA_PREFIX) == 0)
             return getPoints(name);
         if (name.getPrefix(-2).compare(NDNFitCommon.CATALOG_PREFIX) == 0)
             return getCatalog(name);
+        if (name.getPrefix(-1).compare(NDNFitCommon.UPDATE_INFO_PREFIX) == 0)
+            return getUpdateInfo(name);
         return null;
     }
 
@@ -362,6 +451,16 @@ public class NdnDBManager implements Serializable {
         }
     }
 
+    public void deleteUpdateInfo(Name name) {
+        if (name.getPrefix(-1).compare(NDNFitCommon.UPDATE_INFO_PREFIX) != 0)
+            return;
+        try {
+            mDB.delete(UPDATE_INFO_TABLE, "sequence = " + name.get(-1).toSequenceNumber(), null);
+        } catch (EncodingException e) {
+            e.printStackTrace();
+        }
+    }
+
     /**
      * Reset all data
      */
@@ -369,6 +468,7 @@ public class NdnDBManager implements Serializable {
         mDB.execSQL("delete from " + TURN_TABLE);
         mDB.execSQL("delete from " + POINT_TABLE);
         mDB.execSQL("delete from " + CATALOG_TABLE);
+        mDB.execSQL("delete from " + UPDATE_INFO_TABLE);
         Log.i(TAG, "RESET Table");
     }
 }
