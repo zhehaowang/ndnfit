@@ -84,6 +84,8 @@ public class NetworkDaemon {
 
                         face.registerPrefix(NDNFitCommon.CATALOG_PREFIX, receiveInterest,
                                 registerFailure);
+                        face.registerPrefix(NDNFitCommon.UPDATE_INFO_PREFIX, receiveInterest,
+                                registerFailure);
 
 //                        System.out.println("Register prefix " + fetchPrefix.toUri());
 //                        face.registerPrefix

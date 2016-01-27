@@ -76,11 +76,9 @@ public class CatalogCreator implements Runnable {
                 catalog.addPointTime(cursor.getLong(0));
             }
             version = mNdnDBManager.insertCatalog(catalog);
-            if(version != 1) {
-                UpdateInfo updateInfo =
-                        new UpdateInfo(startTimepoint - NDNFitCommon.CATALOG_TIME_RANGE, version);
-                updateInfoList.addItem(updateInfo);
-            }
+            UpdateInfo updateInfo =
+                    new UpdateInfo(startTimepoint - NDNFitCommon.CATALOG_TIME_RANGE, version);
+            updateInfoList.addItem(updateInfo);
         }
         if(updateInfoList.getItems().size() != 0) {
             mNdnDBManager.insertUpdateInfo(updateInfoList);

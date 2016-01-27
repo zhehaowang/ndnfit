@@ -14,7 +14,9 @@ public class NDNFitCommon {
 
     public static Name UPDATE_INFO_PREFIX = new Name(DATA_PREFIX).append("update_info");
 
-    public static Name CONFIRM_PREFIX = new Name(DATA_PREFIX).append("comfirm");
+    public static Name CATALOG_CONFIRM_PREFIX = new Name("/edu/ucla/remap").append(new Name(CATALOG_PREFIX)).append("confirm");
+
+    public static Name DATA_CONFIRM_PREFIX =  new Name("/edu/ucla/remap").append(new Name(DATA_PREFIX)).append("confirm");
 
     public static final Name REPO_COMMAND_PREFIX = new Name("/ndn/edu/ucla/remap/ndnfit/repo");;
 
@@ -26,5 +28,7 @@ public class NDNFitCommon {
         DATA_PREFIX = new Name(userPrefix).append(new Name("data/fitness/physical_activity/time_location"));
         CATALOG_PREFIX = new Name(DATA_PREFIX).append("catalog");
         UPDATE_INFO_PREFIX = new Name(DATA_PREFIX).append("update_info");
+        DATA_CONFIRM_PREFIX = new Name("/edu/ucla/remap").append(new Name(DATA_PREFIX)).append("confirm");
+        CATALOG_CONFIRM_PREFIX = new Name("/edu/ucla/remap").append(new Name(CATALOG_PREFIX)).append("confirm");
     }
 }

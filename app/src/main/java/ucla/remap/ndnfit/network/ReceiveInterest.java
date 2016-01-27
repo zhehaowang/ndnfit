@@ -10,6 +10,7 @@ import net.named_data.jndn.Name;
 import net.named_data.jndn.OnData;
 import net.named_data.jndn.OnInterestCallback;
 import net.named_data.jndn.OnTimeout;
+import net.named_data.jndn.util.Blob;
 
 import java.io.IOException;
 
@@ -38,10 +39,10 @@ public class ReceiveInterest implements OnInterestCallback {
         try {
             Name dataName = interest.getName();
             Data data = ndnDBManager.readData(dataName);
-            System.out.println(dataName.toUri());
             if (data != null) {
                 face.putData(data);
                 Log.d(TAG, ">> D: " + data.getContent().toString());
+//                face.expressInterest();
             }
         } catch (IOException ex) {
             Log.e(TAG, "exception: " + ex.getMessage());

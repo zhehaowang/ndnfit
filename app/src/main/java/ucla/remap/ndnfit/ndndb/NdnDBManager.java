@@ -285,6 +285,7 @@ public class NdnDBManager implements Serializable {
         Data data = new Data();
         Name name = new Name(NDNFitCommon.CATALOG_PREFIX).appendTimestamp(catalog.getCatalogTimePoint()).appendVersion(version);
         data.setName(name);
+        Log.e("error", name.toUri());
         String documentAsString = null;
         try {
             documentAsString = objectMapper.writeValueAsString(catalog.getPointTime());
@@ -348,7 +349,7 @@ public class NdnDBManager implements Serializable {
         Cursor cursor = mDB.query(UPDATE_INFO_TABLE, columns, null,
                 null, null, null, "sequence DESC");
         if (cursor.moveToNext()) {
-            sequence = cursor.getInt(1) + 1;
+            sequence = cursor.getInt(0) + 1;
         }
 
         //insert
