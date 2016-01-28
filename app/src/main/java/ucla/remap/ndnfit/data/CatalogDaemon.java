@@ -15,7 +15,7 @@ public class CatalogDaemon {
     public static void startCreatingCatalog(ScheduledExecutorService scheduler) {
         CatalogCreator catalogCreator = new CatalogCreator();
         // Periodically create datalog
-        long currentTime = System.currentTimeMillis();
+        long currentTime = System.currentTimeMillis() * 1000;
         long waitingTime = (currentTime / NDNFitCommon.CATALOG_TIME_RANGE + 1) * NDNFitCommon.CATALOG_TIME_RANGE
                 - currentTime + TimeUnit.SECONDS.toMillis(10);
         scheduler.scheduleAtFixedRate(catalogCreator, waitingTime,

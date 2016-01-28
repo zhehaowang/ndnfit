@@ -152,7 +152,7 @@ public class DBManager implements Serializable{
         ContentValues record = new ContentValues();
 
         //record.put("finish_time", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()) );
-        record.put("finish_time", System.currentTimeMillis());
+        record.put("finish_time", System.currentTimeMillis() * 1000);
         //record.put("finish_time", anchorPosition.getTimeStamp());
         int updatedRows = mDB.update(TURN_TABLE, record, "id "+"="+currentTurn, null);
     }
@@ -190,7 +190,7 @@ public class DBManager implements Serializable{
         record.put("turn_id", currentTurn);
         record.put("lat", lat);
         record.put("lon", lon);
-        record.put("point_time", System.currentTimeMillis());
+        record.put("point_time", System.currentTimeMillis() * 1000);
 
 
         int rowPosition = (int) mDB.insert(POINT_TABLE, null, record);

@@ -90,7 +90,7 @@ public class GPSListener implements LocationListener{
         Log.d(TAG, "location changed called");
         Double lat = location.getLatitude();
         Double lng = location.getLongitude();
-        long pointTime = location.getTime();
+        long pointTime = location.getTime() * 1000;
 
         Position position = new Position(lat, lng, pointTime);
 

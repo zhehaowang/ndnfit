@@ -283,7 +283,8 @@ public class NdnDBManager implements Serializable {
         ContentValues record = new ContentValues();
         catalog.sortItems();
         Data data = new Data();
-        Name name = new Name(NDNFitCommon.CATALOG_PREFIX).appendTimestamp(catalog.getCatalogTimePoint()).appendVersion(version);
+        Name name = new Name(NDNFitCommon.CATALOG_PREFIX).appendTimestamp(catalog.getCatalogTimePoint())
+                .appendVersion(version);
         data.setName(name);
         Log.e("error", name.toUri());
         String documentAsString = null;
@@ -356,6 +357,7 @@ public class NdnDBManager implements Serializable {
         ContentValues record = new ContentValues();
         Data data = new Data();
         Name name = new Name(NDNFitCommon.UPDATE_INFO_PREFIX).appendSequenceNumber(sequence);
+        Log.e("error", name.toUri());
         data.setName(name);
         String documentAsString = null;
         try {

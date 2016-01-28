@@ -37,7 +37,7 @@ public class CatalogCreator implements Runnable {
         }
         // Group all the data till the timepoint (this timepoint should be a
         // multiple of timeInterval) before the current time
-        while (lastRunTime + NDNFitCommon.CATALOG_TIME_RANGE < System.currentTimeMillis()) {
+        while (lastRunTime + NDNFitCommon.CATALOG_TIME_RANGE < System.currentTimeMillis() * 1000) {
             // get all the data falling in the time interval and
             Cursor cursor = mNdnDBManager.getPoints(lastRunTime,
                     NDNFitCommon.CATALOG_TIME_RANGE);
