@@ -3,8 +3,11 @@ package ucla.remap.ndnfit.network;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
+import net.named_data.jndn.Interest;
 import net.named_data.jndn.Name;
+import net.named_data.jndn.OnData;
 import net.named_data.jndn.encoding.EncodingException;
 import net.named_data.jndn.security.*;
 import net.named_data.jndn.security.SecurityException;
@@ -62,19 +65,6 @@ public class NetworkDaemon {
             final ReceiveInterest receiveInterest = new ReceiveInterest(face);
             final RegisterFailure registerFailure = new RegisterFailure();
 
-//            ///////////////////////////////////
-//            // Register the prefix and send the repo insert command at the same time
-//
-//            final BasicInsertion.ProduceSegments produceSegments = new BasicInsertion.ProduceSegments
-//                    (keyChain, certificateName, startBlockId, endBlockId,
-//                            new BasicInsertion.SimpleCallback() {
-//                                public void exec() {
-//                                    System.out.println("All data was inserted.");
-//                                }
-//                            });
-//            /////////////////////////////////////////
-
-
             AsyncTask<Void, Void, Void> networkTask = new AsyncTask<Void, Void, Void>() {
                 @Override
                 protected Void doInBackground(Void... voids) {
@@ -86,15 +76,16 @@ public class NetworkDaemon {
                                 registerFailure);
                         face.registerPrefix(NDNFitCommon.UPDATE_INFO_PREFIX, receiveInterest,
                                 registerFailure);
+                        Name registerName = new Name(NDNFitCommon.REGISTER_PREFIX).append(NDNFitCommon.USER_PREFIX);
+                        Interest registerInterest = new Interest();
+                        registerInterest.setName(registerName);
+                            face.expressInterest(registerInterest, new OnData() {
+                                @Override
+                                public void onData(Interest interest, Data data) {
 
-//                        System.out.println("Register prefix " + fetchPrefix.toUri());
-//                        face.registerPrefix
-//                                (fetchPrefix, produceSegments,
-//                                        new OnRegisterFailed() {
-//                                            public void onRegisterFailed(Name prefix) {
-//                                                System.out.println("Register failed for prefix " + prefix.toUri());
-//                                            }
-//                                        });
+                                }
+                            }, new RequestDataTimeOut());
+                        Log.e("register", registerInterest.getName().toUri());
 
                         while (true) {
                             face.processEvents();
@@ -109,6 +100,7 @@ public class NetworkDaemon {
                     } catch (EncodingException e) {
                         e.printStackTrace();
                     }
+
                     return null;
                 }
             };
