@@ -114,7 +114,14 @@ public class NetworkDaemon {
     public static void insertIntoRepo(ScheduledExecutorService scheduler) {
         DataUploader dataUploader = new DataUploader();
         dataUploader.setFace(face);
-        scheduler.scheduleAtFixedRate(dataUploader, 60000,
-                NDNFitCommon.UPLOAD_TIME_INTERVAL, TimeUnit.MILLISECONDS);
+        scheduler.scheduleAtFixedRate(dataUploader, 60*1000000,
+                NDNFitCommon.UPLOAD_TIME_INTERVAL, TimeUnit.MICROSECONDS);
+    }
+
+    public static void checkInsertionStatus(ScheduledExecutorService scheduler) {
+        InsertionStatusChecker insertionStatusChecker = new InsertionStatusChecker();
+        insertionStatusChecker.setFace(face);
+        scheduler.scheduleAtFixedRate(insertionStatusChecker, 60*1000000,
+                NDNFitCommon.UPLOAD_TIME_INTERVAL, TimeUnit.MICROSECONDS);
     }
 }

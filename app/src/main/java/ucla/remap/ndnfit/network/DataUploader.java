@@ -82,39 +82,6 @@ public class DataUploader implements Runnable {
             pointCursor.close();
             Thread.sleep(4000);
 
-            //This code does not work correctly
-//            //check if the data is inserted into repo successfully
-//            for(final Name one : transferedCatalogs) {
-//                BasicInsertion.insertCheck(face, NDNFitCommon.REPO_COMMAND_PREFIX, one,
-//                        new BasicInsertion.SimpleCallback() {
-//                            public void exec() {
-//                                Log.d(TAG, "Insert succeeded for " + one.toUri());
-//                            }
-//                        },
-//                        new BasicInsertion.SimpleCallback() {
-//                            public void exec() {
-//                                transferedCatalogs.remove(one);
-//                                // For failure, already printed the error.
-//                            }
-//                        });
-//            }
-//
-//            for(final Name one : transferedPoints) {
-//                BasicInsertion.insertCheck(face, NDNFitCommon.REPO_COMMAND_PREFIX, one,
-//                        new BasicInsertion.SimpleCallback() {
-//                            public void exec() {
-//                                Log.d(TAG, "Insert succeeded for " + one.toUri());
-//                            }
-//                        },
-//                        new BasicInsertion.SimpleCallback() {
-//                            public void exec() {
-//                                transferedCatalogs.remove(one);
-//                                // For failure, already printed the error.
-//                            }
-//                        });
-//            }
-
-
             for(Name one : transferedCatalogs) {
                 ndnDBManager.deleteCatalog(one);
                 Log.d(TAG, "Delete" + one.toUri());

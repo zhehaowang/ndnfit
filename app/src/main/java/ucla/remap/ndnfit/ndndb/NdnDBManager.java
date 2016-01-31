@@ -431,10 +431,17 @@ public class NdnDBManager implements Serializable {
         return cursor;
     }
 
+    public Cursor getAllUpdateInfo() {
+        String[] columns = {"sequence", "data"};
+        Cursor cursor = mDB.query(UPDATE_INFO_TABLE, columns, null, null, null, null, null);
+        return cursor;
+    }
+
     public void deletePoint(Name name) {
         if (name.getPrefix(-1).compare(NDNFitCommon.DATA_PREFIX) != 0)
             return;
         try {
+            Log.e(TAG, "the timepoint is " + name.get(-1).toTimestamp());
             mDB.delete(POINT_TABLE, "timepoint = " + name.get(-1).toTimestamp(), null);
         } catch (EncodingException e) {
             e.printStackTrace();
@@ -458,7 +465,9 @@ public class NdnDBManager implements Serializable {
         if (name.getPrefix(-1).compare(NDNFitCommon.UPDATE_INFO_PREFIX) != 0)
             return;
         try {
-            mDB.delete(UPDATE_INFO_TABLE, "sequence = " + name.get(-1).toSequenceNumber(), null);
+            // In order to help generate the next update information packets, delete the previous
+            // one, keep the current one.
+            mDB.delete(UPDATE_INFO_TABLE, "sequence = " + (name.get(-1).toSequenceNumber() - 1), null);
         } catch (EncodingException e) {
             e.printStackTrace();
         }

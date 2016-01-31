@@ -91,7 +91,12 @@ namespace ndn {
                     return;
                 }
                 
-                confirmSet.insert(data.getName());
+                // add into confirm set
+                std::map<name::Component, std::set<Name>>::iterator it_confirm;
+                it_confirm = user_confirm_map.find(user_id);
+                if (it_confirm != user_confirm_map.end()) {
+                    it_confirm->second.insert(interest.getName());
+                }
                 //put data into repo
                 //tcp_connect_repo.send(data.wireEncode());
                 
@@ -195,7 +200,13 @@ namespace ndn {
                     return;
                 }
                 
-                confirmSet.insert(data.getName());
+                // add into confirm set
+                std::map<name::Component, std::set<Name>>::iterator it_confirm;
+                it_confirm = user_confirm_map.find(user_id);
+                if (it_confirm != user_confirm_map.end()) {
+                    it_confirm->second.insert(interest.getName());
+                }
+                
                 //put data into repo
                 //tcp_connect_repo.send(data.wireEncode());
                 
@@ -285,7 +296,12 @@ namespace ndn {
                     return;
                 }
                 
-                confirmSet.insert(data.getName());
+                // add into confirm set
+                std::map<name::Component, std::set<Name>>::iterator it_confirm;
+                it_confirm = user_confirm_map.find(user_id);
+                if (it_confirm != user_confirm_map.end()) {
+                    it_confirm->second.insert(interest.getName());
+                }
                 
                 //put data into repo
                 //tcp_connect_repo.send(data.wireEncode());
@@ -335,13 +351,27 @@ namespace ndn {
                 
                 // Create new name, based on Interest's name
                 Name confirmDataName(interest.getName());
+                name::Component user_id = confirmDataName.get(9);
                 
-                std::set<Name>::iterator it;
-                it = confirmSet.find(confirmDataName.getSubName(4));
-                if (it != confirmSet.end()) {
-                    Data data;
-                    data.setName(confirmDataName);
-                    confirmSet.erase(it);
+                std::map<name::Component, std::set<Name>>::iterator outer_it;
+                outer_it = user_confirm_map.find(user_id);
+                std::set<Name>::iterator inner_it;
+                if (outer_it != user_confirm_map.end()) {
+                    inner_it = outer_it->second.find(confirmDataName.getSubName(7));
+                    if (inner_it != outer_it->second.end()) {
+                        shared_ptr<Data> data = make_shared<Data>();
+                        data->setName(confirmDataName);
+                        data->setFreshnessPeriod(time::seconds(10));
+                        
+                        // Sign Data packet with default identity
+                        m_keyChain.sign(*data);
+                        std::cout << ">> D: " << *data << std::endl;
+                        m_face.put(*data);
+
+                        outer_it->second.erase(inner_it);
+                    }
+                } else {
+                    std::cout<< "I don't know the user " << user_id << std::endl;
                 }
             }
             
@@ -349,8 +379,8 @@ namespace ndn {
             onRegisterInterest(const InterestFilter& filter, const Interest& interest)
             {
                 std::cout << "<< I: " << interest << std::endl;
-                
-                name::Component user_id = interest.getName().get(9);
+                Name registerSuccessDataName(interest.getName());
+                name::Component user_id = registerSuccessDataName.get(9);
                 
                 std::map<name::Component, std::map<Name, int>>::iterator it;
                 it = user_unretrieve_map.find(user_id);
@@ -388,9 +418,32 @@ namespace ndn {
                     std::cout << "Sending " << updateInfoInterest << std::endl;
                     
                     std::map<Name, int> unretrieve_map;
-                    user_unretrieve_map[user_id] = unretrieve_map;
                     unretrieve_map[updateInfoInterest.getName()] = 0;
+                    user_unretrieve_map[user_id] = unretrieve_map;
+                    
+                    std::map<name::Component, std::map<Name, int>>::iterator outer_it;
+                    outer_it = user_unretrieve_map.find(user_id);
+                    std::map<Name, int>::iterator inner_it;
+                    if (outer_it != user_unretrieve_map.end()) {
+                        inner_it = outer_it->second.find(updateInfoInterest.getName());
+                        if (inner_it == outer_it->second.end()) {
+                            std::cout << "check if the interest is there " << updateInfoInterest << std::endl;
+                            return;
+                        }
+                    }
+                    
+                    std::set<Name> confirm_set;
+                    user_confirm_map[user_id] = confirm_set;
                 }
+                
+                shared_ptr<Data> data = make_shared<Data>();
+                data->setName(registerSuccessDataName);
+                data->setFreshnessPeriod(time::seconds(10));
+                // Sign Data packet with default identity
+                m_keyChain.sign(*data);
+                std::cout << ">> D: " << *data << std::endl;
+                m_face.put(*data);
+
             }
             
             void
@@ -408,7 +461,7 @@ namespace ndn {
             TcpTransport tcp_connect_repo;
             Scheduler m_scheduler;
             std::map<name::Component, std::map<Name, int>> user_unretrieve_map;
-            std::set<Name> confirmSet;
+            std::map<name::Component, std::set<Name>> user_confirm_map;
             KeyChain m_keyChain;
         };
         

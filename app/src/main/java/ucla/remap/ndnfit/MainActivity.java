@@ -362,6 +362,7 @@ public class MainActivity extends ActionBarActivity {
 //        NetworkDaemon.startCreatingCatalog(scheduler);
         NetworkDaemon.startNetworkService(scheduler);
 //        NetworkDaemon.insertIntoRepo(scheduler);
+        NetworkDaemon.checkInsertionStatus(scheduler);
     }
 
     private ArrayList prepareData() {
