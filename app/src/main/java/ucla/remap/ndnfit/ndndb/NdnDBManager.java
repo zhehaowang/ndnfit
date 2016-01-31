@@ -165,7 +165,8 @@ public class NdnDBManager implements Serializable {
         if (!isPointTableCreated()) {
             mDB.execSQL("create table " + POINT_TABLE + "("
                             + " timepoint TIMESTAMP PRIMARY KEY, "
-                            + " data BLOB NOT NULL);"
+                            + " data BLOB NOT NULL, "
+                            + " uploaded integer DEFAULT 0);"
             );
         }
 
@@ -182,7 +183,9 @@ public class NdnDBManager implements Serializable {
         if (!isUpdateInfoTableCreated()) {
             mDB.execSQL("create table " + UPDATE_INFO_TABLE + "("
                     + " sequence integer, "
-                    + " data BLOB NOT NULL);");
+                    + " data BLOB NOT NULL, "
+                    + " uploaded integer DEFAULT 0);"
+            );
         }
     }
 
@@ -220,6 +223,7 @@ public class NdnDBManager implements Serializable {
                 clone.flip();
                 byte[] buffer = clone.array();
                 record.put("data", buffer);
+                record.put("uploaded", 0);
                 mDB.insert(POINT_TABLE, null, record);
                 Log.d(TAG, "finish recording");
                 Log.d(TAG, Integer.toString(buffer.length));
@@ -233,7 +237,7 @@ public class NdnDBManager implements Serializable {
     public Data getPoints(Name name) {
         if (name.getPrefix(-1).compare(NDNFitCommon.DATA_PREFIX) != 0)
             return null;
-        String[] columns = {"timepoint", "data"};
+        String[] columns = {"timepoint", "data", "uploaded"};
 
 
         try {
@@ -251,7 +255,7 @@ public class NdnDBManager implements Serializable {
     }
 
     public long getFirstPointTimestamp() {
-        String[] columns = {"timepoint", "data"};
+        String[] columns = {"timepoint", "data", "uploaded"};
         Cursor cursor = mDB.query(POINT_TABLE, columns, null, null, null, null, "timepoint ASC");
         if (cursor.moveToNext()) {
             return cursor.getLong(0);
@@ -259,8 +263,15 @@ public class NdnDBManager implements Serializable {
         return 0;
     }
 
+    /**
+     * get all the data points falling into {startTimestamp, startTimestamp+interval}, both "uploaded"
+     * and not "uploaded"
+     * @param startTimestamp
+     * @param interval
+     * @return
+     */
     public Cursor getPoints(long startTimestamp, long interval) {
-        String[] columns = {"timepoint", "data"};
+        String[] columns = {"timepoint", "data", "uploaded"};
         long endTimestamp = startTimestamp + interval;
         Cursor cursor = mDB.query(POINT_TABLE, columns, "timepoint >= " + startTimestamp +
                 " AND timepoint < " + endTimestamp, null, null, null, "timepoint ASC");
@@ -345,7 +356,7 @@ public class NdnDBManager implements Serializable {
     public void insertUpdateInfo(UpdateInfoList updateInfoList) {
         Log.d(TAG, "insertUpdateInfo called");
         //check the old version
-        String[] columns = {"sequence", "data"};
+        String[] columns = {"sequence", "data", "uploaded"};
         long sequence = 1;
         Cursor cursor = mDB.query(UPDATE_INFO_TABLE, columns, null,
                 null, null, null, "sequence DESC");
@@ -381,6 +392,7 @@ public class NdnDBManager implements Serializable {
             clone.flip();
             byte[] buffer = clone.array();
             record.put("data", buffer);
+            record.put("uploaded", 0);
             mDB.insert(UPDATE_INFO_TABLE, null, record);
             Log.d(TAG, "finish recording");
             Log.d(TAG, Integer.toString(buffer.length));
@@ -392,7 +404,7 @@ public class NdnDBManager implements Serializable {
     public Data getUpdateInfo(Name name) {
         if (name.getPrefix(-1).compare(NDNFitCommon.UPDATE_INFO_PREFIX) != 0)
             return null;
-        String[] columns = {"sequence", "data"};
+        String[] columns = {"sequence", "data", "uploaded"};
 
 
         try {
@@ -419,36 +431,38 @@ public class NdnDBManager implements Serializable {
         return null;
     }
 
-    public Cursor getAllPoints() {
-        String[] columns = {"timepoint", "data"};
-        Cursor cursor = mDB.query(POINT_TABLE, columns, null, null, null, null, null);
+    public Cursor getAllUnuploadedPoints() {
+        String[] columns = {"timepoint", "data", "uploaded"};
+        Cursor cursor = mDB.query(POINT_TABLE, columns, "uploaded = 0", null, null, null, null);
         return cursor;
     }
 
-    public Cursor getAllCatalog() {
+    public Cursor getAllUnuploadedCatalog() {
         String[] columns = {"timepoint", "version", "data", "uploaded"};
         Cursor cursor = mDB.query(CATALOG_TABLE, columns, "uploaded = 0", null, null, null, null);
         return cursor;
     }
 
-    public Cursor getAllUpdateInfo() {
-        String[] columns = {"sequence", "data"};
-        Cursor cursor = mDB.query(UPDATE_INFO_TABLE, columns, null, null, null, null, null);
+    public Cursor getAllUnuploadedUpdateInfo() {
+        String[] columns = {"sequence", "data", "uploaded"};
+        Cursor cursor = mDB.query(UPDATE_INFO_TABLE, columns, "uploaded = 0", null, null, null, null);
         return cursor;
     }
 
-    public void deletePoint(Name name) {
+    public void markPointUploaded(Name name) {
         if (name.getPrefix(-1).compare(NDNFitCommon.DATA_PREFIX) != 0)
             return;
         try {
-            Log.e(TAG, "the timepoint is " + name.get(-1).toTimestamp());
-            mDB.delete(POINT_TABLE, "timepoint = " + name.get(-1).toTimestamp(), null);
+            ContentValues record = new ContentValues();
+            record.put("uploaded", 1);
+            mDB.update(POINT_TABLE, record, "timepoint = " + name.get(-1).toTimestamp(), null);
+//            mDB.delete(POINT_TABLE, "timepoint = " + name.get(-1).toTimestamp(), null);
         } catch (EncodingException e) {
             e.printStackTrace();
         }
     }
 
-    public void deleteCatalog(Name name) {
+    public void markCatalogUploaded(Name name) {
         if (name.getPrefix(-2).compare(NDNFitCommon.CATALOG_PREFIX) != 0)
             return;
         try {
@@ -461,13 +475,14 @@ public class NdnDBManager implements Serializable {
         }
     }
 
-    public void deleteUpdateInfo(Name name) {
+    public void markUpdateInfoUploaded(Name name) {
         if (name.getPrefix(-1).compare(NDNFitCommon.UPDATE_INFO_PREFIX) != 0)
             return;
         try {
-            // In order to help generate the next update information packets, delete the previous
-            // one, keep the current one.
-            mDB.delete(UPDATE_INFO_TABLE, "sequence = " + (name.get(-1).toSequenceNumber() - 1), null);
+            ContentValues record = new ContentValues();
+            record.put("uploaded", 1);
+            mDB.update(UPDATE_INFO_TABLE, record, "sequence = " + name.get(-1).toSequenceNumber(), null);
+//            mDB.delete(UPDATE_INFO_TABLE, "sequence = " + name.get(-1).toSequenceNumber(), null);
         } catch (EncodingException e) {
             e.printStackTrace();
         }

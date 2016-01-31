@@ -35,7 +35,7 @@ public class DataUploader implements Runnable {
     private void insertDataIntoRepo() {
         Log.d(TAG, "insertDataIntoRepo");
         try {
-            Cursor catalogCursor = ndnDBManager.getAllCatalog();
+            Cursor catalogCursor = ndnDBManager.getAllUnuploadedCatalog();
             final List<Name> transferedCatalogs = new ArrayList<>();
             while (catalogCursor.moveToNext()) {
                 byte[] raw = catalogCursor.getBlob(2);
@@ -57,7 +57,7 @@ public class DataUploader implements Runnable {
                                 });
             }
 
-            Cursor pointCursor = ndnDBManager.getAllPoints();
+            Cursor pointCursor = ndnDBManager.getAllUnuploadedPoints();
             final List<Name> transferedPoints = new ArrayList<>();
             while(pointCursor.moveToNext()) {
                 byte[] raw = pointCursor.getBlob(1);
@@ -83,11 +83,11 @@ public class DataUploader implements Runnable {
             Thread.sleep(4000);
 
             for(Name one : transferedCatalogs) {
-                ndnDBManager.deleteCatalog(one);
+                ndnDBManager.markCatalogUploaded(one);
                 Log.d(TAG, "Delete" + one.toUri());
             }
             for(Name one : transferedPoints) {
-                ndnDBManager.deletePoint(one);
+                ndnDBManager.markPointUploaded(one);
                 Log.d(TAG, "Delete" + one.toUri());
             }
         } catch (Exception e) {

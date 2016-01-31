@@ -37,7 +37,7 @@ public class InsertionStatusChecker implements Runnable {
     private void checkInsertionStatus() {
 
         try {
-            Cursor pointCursor = ndnDBManager.getAllPoints();
+            Cursor pointCursor = ndnDBManager.getAllUnuploadedPoints();
             final List<Name> pointsConfirmation = new ArrayList<>();
             while (pointCursor.moveToNext()) {
                 byte[] raw = pointCursor.getBlob(1);
@@ -55,7 +55,7 @@ public class InsertionStatusChecker implements Runnable {
             }
             pointCursor.close();
 
-            Cursor catalogCursor = ndnDBManager.getAllCatalog();
+            Cursor catalogCursor = ndnDBManager.getAllUnuploadedCatalog();
             final List<Name> catalogsConfirmation = new ArrayList<>();
             while (catalogCursor.moveToNext()) {
                 byte[] raw = catalogCursor.getBlob(2);
@@ -73,7 +73,7 @@ public class InsertionStatusChecker implements Runnable {
             }
             catalogCursor.close();
 
-            Cursor updateInfoCursor = ndnDBManager.getAllUpdateInfo();
+            Cursor updateInfoCursor = ndnDBManager.getAllUnuploadedUpdateInfo();
             final List<Name> updateInfoConfirmation = new ArrayList<>();
             while (updateInfoCursor.moveToNext()) {
                 byte[] raw = updateInfoCursor.getBlob(1);
@@ -94,15 +94,15 @@ public class InsertionStatusChecker implements Runnable {
             Thread.sleep(5000);
 
             for(Name one : updateInfoConfirmation) {
-                ndnDBManager.deleteUpdateInfo(one);
+                ndnDBManager.markUpdateInfoUploaded(one);
                 Log.d(TAG, "Delete " + one.toUri());
             }
             for(Name one : catalogsConfirmation) {
-                ndnDBManager.deleteCatalog(one);
+                ndnDBManager.markCatalogUploaded(one);
                 Log.d(TAG, "Delete " + one.toUri());
             }
             for(Name one : pointsConfirmation) {
-                ndnDBManager.deletePoint(one);
+                ndnDBManager.markPointUploaded(one);
                 Log.d(TAG, "Delete " + one.toUri());
             }
         } catch (Exception e) {
