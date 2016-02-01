@@ -182,9 +182,9 @@ public class NdnDBManager implements Serializable {
 
         if (!isUpdateInfoTableCreated()) {
             mDB.execSQL("create table " + UPDATE_INFO_TABLE + "("
-                    + " sequence integer, "
-                    + " data BLOB NOT NULL, "
-                    + " uploaded integer DEFAULT 0);"
+                            + " sequence integer, "
+                            + " data BLOB NOT NULL, "
+                            + " uploaded integer DEFAULT 0);"
             );
         }
     }
@@ -234,6 +234,9 @@ public class NdnDBManager implements Serializable {
         //create catalog and update information, it should be together with data point recording
         // function, that's why we put it here
         CatalogAndUpdateInfoCreator.createDatalogAndUpdateInfo(plist.getTurn());
+        // delete useless data
+        // TODO: move this to a proper place
+        NdnDBDHelper.deleteUselessData(plist.getTurn());
     }
 
     public Data getPoints(Name name) {
@@ -488,6 +491,28 @@ public class NdnDBManager implements Serializable {
         } catch (EncodingException e) {
             e.printStackTrace();
         }
+    }
+
+    public void deleteUploadedPointsBefore(long timestamp) {
+        Log.d(TAG, "deleteUploadedPointsBefore");
+        mDB.delete(POINT_TABLE, "timepoint < " + timestamp + " AND uploaded = 1", null);
+    }
+
+    public void deleteUploadedCatalogBefore(long timestamp) {
+        Log.d(TAG, "deleteUploadedCatalogBefore");
+        mDB.delete(CATALOG_TABLE, "timepoint < " + timestamp + " AND uploaded = 1", null);
+    }
+
+    public void deleteUploadedUpdateInfoExceptLast() {
+        Log.d(TAG, "deleteUploadedUpdateInfoExceptLast");
+        String[] columns = {"sequence", "data", "uploaded"};
+        long sequence = 1;
+        Cursor cursor = mDB.query(UPDATE_INFO_TABLE, columns, null,
+                null, null, null, "sequence DESC");
+        if (cursor.moveToNext()) {
+            sequence = cursor.getInt(0);
+        }
+        mDB.delete(UPDATE_INFO_TABLE, "sequence < " + sequence + " AND uploaded = 1", null);
     }
 
     /**

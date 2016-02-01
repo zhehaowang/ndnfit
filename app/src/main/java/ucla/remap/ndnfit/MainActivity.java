@@ -69,7 +69,7 @@ public class MainActivity extends ActionBarActivity {
     ProgressDialog renderProgressDiag_;
     List<Position> debugPoints;
     CypherManager mCypherManager;
-    ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(4);
+    ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(8);
 
     String mAppId;
     Name mAppCertificateName;
