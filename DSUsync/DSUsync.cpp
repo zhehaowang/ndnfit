@@ -24,16 +24,19 @@ namespace ndn {
         
         static const std::string CONFIRM_PREFIX = "/ndn/edu/ucla/remap/ndnfit/dsu/confirm/org/openmhealth";
         static const std::string REGISTER_PREFIX = "/ndn/edu/ucla/remap/ndnfit/dsu/register/org/openmhealth";
+        static const std::string CONFIRM_PREFIX_FOR_REPLY = "/ndn/edu/ucla/remap/ndnfit/dsu/confirm";
         
         class DSUsync : noncopyable
         {
         public:
             DSUsync()
             : m_face(m_ioService) // Create face with io_service object
-            , tcp_connect_repo("localhost", "6363" /*7376*/)
+            , tcp_connect_repo_for_put_data("localhost", "7376")
+            , tcp_connect_repo_for_confirmation("localhost", "7376")
             , m_scheduler(m_ioService)
             {
-                tcp_connect_repo.connect(m_ioService, bind(&DSUsync::receiveCallback, this, _1));
+                tcp_connect_repo_for_put_data.connect(m_ioService, bind(&DSUsync::putinDataCallback, this, _1));
+                tcp_connect_repo_for_confirmation.connect(m_ioService, bind(&DSUsync::confirmationCallback, this, _1));
             }
             
             void
@@ -61,7 +64,40 @@ namespace ndn {
             }
             
         private:
-            void receiveCallback(const Block& wire) {
+            void confirmationCallback(const Block& wire) {
+                if (wire.type() == ndn::tlv::Data) {
+                    Data data(wire);
+                    // if the data packet is there in the repo, send confirmation to the mobile device
+                    if(data.getContent().value_size() != 0) {
+                        shared_ptr<Data> confirmationData = make_shared<Data>();
+                        confirmationData->setName(Name(CONFIRM_PREFIX_FOR_REPLY).append(data.getName()));
+                        confirmationData->setFreshnessPeriod(time::seconds(10));
+                        
+                        // Sign Data packet with default identity
+                        m_keyChain.sign(*confirmationData);
+                        std::cout << ">> D: " << *confirmationData << std::endl;
+                        m_face.put(*confirmationData);
+                    }
+                }
+                return;
+            }
+            void putinDataCallback(const Block& wire) {
+                if (wire.type() == ndn::tlv::Data) {
+                    Data data(wire);
+                    // if the data packet is not there in the repo, send interest to get data
+                    if(data.getContent().value_size() == 0) {
+                        Interest datapointInterest(data.getName());
+                        m_face.expressInterest(datapointInterest,
+                                               bind(&DSUsync::onDatapointData, this, _1, _2),
+                                               bind(&DSUsync::onDatapointTimeout, this, _1));
+                        std::cout << "Sending " << datapointInterest << std::endl;
+                        std::map<name::Component, std::map<Name, int>>::iterator it;
+                        it = user_unretrieve_map.find(data.getName().get(2));
+                        if (it != user_unretrieve_map.end()) {
+                            it->second[datapointInterest.getName()] = 0;
+                        }
+                    }
+                }
                 return;
             }
             void onUpdateInfoData(const Interest& interest, const Data& data)
@@ -92,13 +128,13 @@ namespace ndn {
                 }
                 
                 // add into confirm set
-                std::map<name::Component, std::set<Name>>::iterator it_confirm;
-                it_confirm = user_confirm_map.find(user_id);
-                if (it_confirm != user_confirm_map.end()) {
-                    it_confirm->second.insert(interest.getName());
-                }
+//                std::map<name::Component, std::set<Name>>::iterator it_confirm;
+//                it_confirm = user_confirm_map.find(user_id);
+//                if (it_confirm != user_confirm_map.end()) {
+//                    it_confirm->second.insert(interest.getName());
+//                }
                 //put data into repo
-                //tcp_connect_repo.send(data.wireEncode());
+                tcp_connect_repo_for_put_data.send(data.wireEncode());
                 
                 //parse the content and start to fetch catalog packets, see schema file for the details
                 const rapidjson::Value& list = document;
@@ -120,7 +156,7 @@ namespace ndn {
                                            bind(&DSUsync::onCatalogData, this, _1, _2),
                                            bind(&DSUsync::onCatalogTimeout, this, _1));
                     std::cout << "Sending " << catalogInterest << std::endl;
-//                    unretrieveMap.insert(std::pair<Name, int>(catalogInterest.getName(), 0));
+                    //                    unretrieveMap.insert(std::pair<Name, int>(catalogInterest.getName(), 0));
                     outer_it->second[catalogInterest.getName()] = 0;
                 }
                 
@@ -133,7 +169,7 @@ namespace ndn {
                                        bind(&DSUsync::onUpdateInfoData, this, _1, _2),
                                        bind(&DSUsync::onUpdateInfoTimeout, this, _1));
                 std::cout << "Sending " << updateInfoInterest << std::endl;
-//                unretrieveMap.insert(std::pair<Name, int>(updateInfoInterest.getName(), 0));
+                //                unretrieveMap.insert(std::pair<Name, int>(updateInfoInterest.getName(), 0));
                 outer_it->second[updateInfoInterest.getName()] = 0;
             }
             
@@ -201,14 +237,14 @@ namespace ndn {
                 }
                 
                 // add into confirm set
-                std::map<name::Component, std::set<Name>>::iterator it_confirm;
-                it_confirm = user_confirm_map.find(user_id);
-                if (it_confirm != user_confirm_map.end()) {
-                    it_confirm->second.insert(interest.getName());
-                }
+//                std::map<name::Component, std::set<Name>>::iterator it_confirm;
+//                it_confirm = user_confirm_map.find(user_id);
+//                if (it_confirm != user_confirm_map.end()) {
+//                    it_confirm->second.insert(interest.getName());
+//                }
                 
                 //put data into repo
-                //tcp_connect_repo.send(data.wireEncode());
+                tcp_connect_repo_for_put_data.send(data.wireEncode());
                 
                 //parse the content and start to fetch the data points, see schema file for the details
                 const rapidjson::Value& list = document;
@@ -222,12 +258,12 @@ namespace ndn {
                     Interest datapointInterest(interest.getName().getPrefix(-3).appendTimestamp(time::fromUnixTimestamp(time::milliseconds(list[i].GetUint64()/1000))));
                     datapointInterest.setInterestLifetime(time::seconds(INTEREST_TIME_OUT_SECONDS));
                     datapointInterest.setMustBeFresh(true);
-                    m_face.expressInterest(datapointInterest,
-                                           bind(&DSUsync::onDatapointData, this, _1, _2),
-                                           bind(&DSUsync::onDatapointTimeout, this, _1));
-                    std::cout << "Sending " << datapointInterest << std::endl;
-//                    unretrieveMap.insert(std::pair<Name, int>(datapointInterest.getName(), 0));
-                    outer_it->second[datapointInterest.getName()] = 0;
+                    tcp_connect_repo_for_put_data.send(datapointInterest.wireEncode());
+                    //                    m_face.expressInterest(datapointInterest,
+                    //                                           bind(&DSUsync::onDatapointData, this, _1, _2),
+                    //                                           bind(&DSUsync::onDatapointTimeout, this, _1));
+                    //                    std::cout << "Sending " << datapointInterest << std::endl;
+                    //                    outer_it->second[datapointInterest.getName()] = 0;
                 }
                 
             }
@@ -297,14 +333,14 @@ namespace ndn {
                 }
                 
                 // add into confirm set
-                std::map<name::Component, std::set<Name>>::iterator it_confirm;
-                it_confirm = user_confirm_map.find(user_id);
-                if (it_confirm != user_confirm_map.end()) {
-                    it_confirm->second.insert(interest.getName());
-                }
+//                std::map<name::Component, std::set<Name>>::iterator it_confirm;
+//                it_confirm = user_confirm_map.find(user_id);
+//                if (it_confirm != user_confirm_map.end()) {
+//                    it_confirm->second.insert(interest.getName());
+//                }
                 
                 //put data into repo
-                //tcp_connect_repo.send(data.wireEncode());
+                tcp_connect_repo_for_put_data.send(data.wireEncode());
                 
             }
             
@@ -349,30 +385,34 @@ namespace ndn {
             {
                 std::cout << "<< I: " << interest << std::endl;
                 
-                // Create new name, based on Interest's name
-                Name confirmDataName(interest.getName());
-                name::Component user_id = confirmDataName.get(9);
+                Interest dataInterest(interest.getName().getSubName(7));
                 
-                std::map<name::Component, std::set<Name>>::iterator outer_it;
-                outer_it = user_confirm_map.find(user_id);
-                std::set<Name>::iterator inner_it;
-                if (outer_it != user_confirm_map.end()) {
-                    inner_it = outer_it->second.find(confirmDataName.getSubName(7));
-                    if (inner_it != outer_it->second.end()) {
-                        shared_ptr<Data> data = make_shared<Data>();
-                        data->setName(confirmDataName);
-                        data->setFreshnessPeriod(time::seconds(10));
-                        
-                        // Sign Data packet with default identity
-                        m_keyChain.sign(*data);
-                        std::cout << ">> D: " << *data << std::endl;
-                        m_face.put(*data);
-
-                        outer_it->second.erase(inner_it);
-                    }
-                } else {
-                    std::cout<< "I don't know the user " << user_id << std::endl;
-                }
+                tcp_connect_repo_for_confirmation.send(dataInterest.wireEncode());
+                
+                // Create new name, based on Interest's name
+//                Name confirmDataName(interest.getName());
+//                name::Component user_id = confirmDataName.get(9);
+//                
+//                std::map<name::Component, std::set<Name>>::iterator outer_it;
+//                outer_it = user_confirm_map.find(user_id);
+//                std::set<Name>::iterator inner_it;
+//                if (outer_it != user_confirm_map.end()) {
+//                    inner_it = outer_it->second.find(confirmDataName.getSubName(7));
+//                    if (inner_it != outer_it->second.end()) {
+//                        shared_ptr<Data> data = make_shared<Data>();
+//                        data->setName(confirmDataName);
+//                        data->setFreshnessPeriod(time::seconds(10));
+//                        
+//                        // Sign Data packet with default identity
+//                        m_keyChain.sign(*data);
+//                        std::cout << ">> D: " << *data << std::endl;
+//                        m_face.put(*data);
+//                        
+//                        outer_it->second.erase(inner_it);
+//                    }
+//                } else {
+//                    std::cout<< "I don't know the user " << user_id << std::endl;
+//                }
             }
             
             void
@@ -390,13 +430,14 @@ namespace ndn {
                         Interest resentInterest(inner_it->first);
                         resentInterest.setInterestLifetime(time::seconds(INTEREST_TIME_OUT_SECONDS));
                         resentInterest.setMustBeFresh(true);
-                        if (keyComp == UPDATA_INFO_COMP) {
-                            // TODO: the same update information interest may be sent, but this is not a big deal(at least for not)
-                            m_face.expressInterest(resentInterest,
-                                                   bind(&DSUsync::onUpdateInfoData, this, _1, _2),
-                                                   bind(&DSUsync::onUpdateInfoTimeout, this, _1));
-                            
-                        } else if(keyComp == CATALOG_COMP) {
+                        // since the same update information interest keeps being sent, so we do not need to do the following part
+//                        if (keyComp == UPDATA_INFO_COMP) {
+//                            m_face.expressInterest(resentInterest,
+//                                                   bind(&DSUsync::onUpdateInfoData, this, _1, _2),
+//                                                   bind(&DSUsync::onUpdateInfoTimeout, this, _1));
+//                            
+//                        } else
+                        if(keyComp == CATALOG_COMP) {
                             m_face.expressInterest(resentInterest,
                                                    bind(&DSUsync::onCatalogData, this, _1, _2),
                                                    bind(&DSUsync::onCatalogTimeout, this, _1));
@@ -432,8 +473,8 @@ namespace ndn {
                         }
                     }
                     
-                    std::set<Name> confirm_set;
-                    user_confirm_map[user_id] = confirm_set;
+//                    std::set<Name> confirm_set;
+//                    user_confirm_map[user_id] = confirm_set;
                 }
                 
                 shared_ptr<Data> data = make_shared<Data>();
@@ -443,7 +484,7 @@ namespace ndn {
                 m_keyChain.sign(*data);
                 std::cout << ">> D: " << *data << std::endl;
                 m_face.put(*data);
-
+                
             }
             
             void
@@ -458,10 +499,11 @@ namespace ndn {
             // Explicitly create io_service object, which can be shared between Face and Scheduler
             boost::asio::io_service m_ioService;
             Face m_face;
-            TcpTransport tcp_connect_repo;
+            TcpTransport tcp_connect_repo_for_put_data;
+            TcpTransport tcp_connect_repo_for_confirmation;
             Scheduler m_scheduler;
             std::map<name::Component, std::map<Name, int>> user_unretrieve_map;
-            std::map<name::Component, std::set<Name>> user_confirm_map;
+//            std::map<name::Component, std::set<Name>> user_confirm_map;
             KeyChain m_keyChain;
         };
         

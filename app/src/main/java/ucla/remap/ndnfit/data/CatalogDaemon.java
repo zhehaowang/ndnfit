@@ -4,7 +4,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import ucla.remap.ndnfit.NDNFitCommon;
-import ucla.remap.ndnfit.data.CatalogCreator;
+import ucla.remap.ndnfit.data.CatalogAndUpdateInfoCreator;
 import ucla.remap.ndnfit.ndndb.NdnDBManager;
 
 /**
@@ -13,7 +13,7 @@ import ucla.remap.ndnfit.ndndb.NdnDBManager;
 public class CatalogDaemon {
 
     public static void startCreatingCatalog(ScheduledExecutorService scheduler) {
-        CatalogCreator catalogCreator = new CatalogCreator();
+        CatalogAndUpdateInfoCreator catalogCreator = new CatalogAndUpdateInfoCreator();
         // Periodically create datalog
         long currentTime = System.currentTimeMillis() * 1000;
         long waitingTime = (currentTime / NDNFitCommon.CATALOG_TIME_RANGE + 1) * NDNFitCommon.CATALOG_TIME_RANGE

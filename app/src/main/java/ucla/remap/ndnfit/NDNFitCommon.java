@@ -30,7 +30,7 @@ public class NDNFitCommon {
 
     public static final long CATALOG_TIME_RANGE = TimeUnit.MINUTES.toMicros(10);
 
-    public static final long UPLOAD_TIME_INTERVAL = TimeUnit.MINUTES.toMicros(1);
+    public static final long FETCH_CONFIRMATION_TIME_INTERVAL = TimeUnit.MINUTES.toMicros(1);
 
     public static void setDataPrefix(Name userPrefix) {
         USER_PREFIX = new Name(userPrefix);

@@ -115,13 +115,13 @@ public class NetworkDaemon {
         DataUploader dataUploader = new DataUploader();
         dataUploader.setFace(face);
         scheduler.scheduleAtFixedRate(dataUploader, 60*1000000,
-                NDNFitCommon.UPLOAD_TIME_INTERVAL, TimeUnit.MICROSECONDS);
+                NDNFitCommon.FETCH_CONFIRMATION_TIME_INTERVAL, TimeUnit.MICROSECONDS);
     }
 
     public static void checkInsertionStatus(ScheduledExecutorService scheduler) {
         InsertionStatusChecker insertionStatusChecker = new InsertionStatusChecker();
         insertionStatusChecker.setFace(face);
-        scheduler.scheduleAtFixedRate(insertionStatusChecker, 60*1000000,
-                NDNFitCommon.UPLOAD_TIME_INTERVAL, TimeUnit.MICROSECONDS);
+        scheduler.scheduleAtFixedRate(insertionStatusChecker, 60 * 1000000,
+                NDNFitCommon.FETCH_CONFIRMATION_TIME_INTERVAL, TimeUnit.MICROSECONDS);
     }
 }

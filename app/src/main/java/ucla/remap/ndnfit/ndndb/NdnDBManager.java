@@ -29,7 +29,7 @@ import java.util.List;
 import ucla.remap.ndnfit.MainActivity;
 import ucla.remap.ndnfit.NDNFitCommon;
 import ucla.remap.ndnfit.data.Catalog;
-import ucla.remap.ndnfit.data.CatalogCreator;
+import ucla.remap.ndnfit.data.CatalogAndUpdateInfoCreator;
 import ucla.remap.ndnfit.data.Position;
 import ucla.remap.ndnfit.data.PositionListProcessor;
 import ucla.remap.ndnfit.data.UpdateInfoList;
@@ -231,7 +231,9 @@ public class NdnDBManager implements Serializable {
                 e.printStackTrace();
             }
         }
-        CatalogCreator.createDatalog(plist.getTurn());
+        //create catalog and update information, it should be together with data point recording
+        // function, that's why we put it here
+        CatalogAndUpdateInfoCreator.createDatalogAndUpdateInfo(plist.getTurn());
     }
 
     public Data getPoints(Name name) {

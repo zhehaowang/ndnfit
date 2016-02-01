@@ -643,6 +643,7 @@ public class MainActivity extends ActionBarActivity {
                     }
                     mDBManager.recordPoints(renderedPoints);
                     mNdnDBmanager.recordPoints(renderedPoints);
+
                 }
             };
 

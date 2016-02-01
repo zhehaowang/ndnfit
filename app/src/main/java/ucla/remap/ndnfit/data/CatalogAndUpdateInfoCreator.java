@@ -14,7 +14,7 @@ import ucla.remap.ndnfit.ndndb.NdnDBManager;
 /**
  * Created by zhtaoxiang on 1/3/16.
  */
-public class CatalogCreator implements Runnable {
+public class CatalogAndUpdateInfoCreator implements Runnable {
     private static final String TAG = "CatalogCreator";
     // What is the last time to group the data
     private long lastRunTime = 0;
@@ -57,7 +57,7 @@ public class CatalogCreator implements Runnable {
         }
     }
 
-    public static void createDatalog(Turn turn) {
+    public static void createDatalogAndUpdateInfo(Turn turn) {
         long startTimepoint = (turn.getStartTimeStamp() / NDNFitCommon.CATALOG_TIME_RANGE) * NDNFitCommon.CATALOG_TIME_RANGE;
         long endTimepoint = (turn.getFinishTimeStamp() / NDNFitCommon.CATALOG_TIME_RANGE + 1) * NDNFitCommon.CATALOG_TIME_RANGE;
         UpdateInfoList updateInfoList = new UpdateInfoList();

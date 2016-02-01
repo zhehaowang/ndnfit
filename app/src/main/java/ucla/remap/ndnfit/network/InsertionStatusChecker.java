@@ -95,15 +95,15 @@ public class InsertionStatusChecker implements Runnable {
 
             for(Name one : updateInfoConfirmation) {
                 ndnDBManager.markUpdateInfoUploaded(one);
-                Log.d(TAG, "Delete " + one.toUri());
+                Log.d(TAG, "Marked " + one.toUri() + " as uploaded");
             }
             for(Name one : catalogsConfirmation) {
                 ndnDBManager.markCatalogUploaded(one);
-                Log.d(TAG, "Delete " + one.toUri());
+                Log.d(TAG, "Marked " + one.toUri() + " as uploaded");
             }
             for(Name one : pointsConfirmation) {
                 ndnDBManager.markPointUploaded(one);
-                Log.d(TAG, "Delete " + one.toUri());
+                Log.d(TAG, "Marked " + one.toUri() + " as uploaded");
             }
         } catch (Exception e) {
             e.printStackTrace();
