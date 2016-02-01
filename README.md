@@ -7,9 +7,15 @@ Jan 20, 2015 - v0.1
 ### What it does:
 * Capture time-location data (Use NETWORK\_PROVIDER instead of GPS\_PROVIDER for GPS for now)
 * Use the identity provided by <a href = "https://github.com/zhehaowang/android-identity-manager/releases"> Android Identity Manager </a> to sign the captured data
-* "Upload" captured data to the DSU running on remap server memoria.ndn.ucla.edu
+* "Upload" captured data to the DSU running on remap server memoria.ndn.ucla.edu (the server side program is under <root>/DSUSync directory)
 
 ### How to use:
+* run NFD (the latest version, <a href = "https://github.com/named-data/nfd">here</a>, route should be configured correcly based on the specific network environment), Repo-ng (use the customized version, <a href = "https://github.com/zhtaoxiang/repo-ng-for-ndnfit">here</a>. In repo-ng.conf file, tcp_bulk_insert must be enabled, and data and command prefixes should be configured correcly based on the specific network environment) and DSUSync (<a href = "https://github.com/zhehaowang/ndnfit/releases">download</a>, fix this link after merge to master branch) on server side. If you want to compile the DSUSync by your self, do the following steps
+  * Check out ndn-cxx <a href = "https://github.com/named-data/ndn-cxx">here</a>
+  * Move <root>/DSUSync/DSUSync.cpp to the examples directory under ndn-cxx
+  * <a href = "https://code.google.com/archive/p/rapidjson/downloads">Download</a> rapidjson (rapidjson-0.11.zip) and follow readme to install it
+  * Follow <a href = "https://github.com/cawka/ndn-cxx/blob/master/docs/INSTALL.rst">/docs/INSTALL.rst</a> of ndn-cxx to compile the code. Notice that you much use "./waf configure" to configure it
+  * After run "./waf configure", "./waf" and "sudo ./waf install", run "./waf configure --with-examples", "./waf" again, the executable file will be under build/examples directory
 * Install ndnfit, identity manager, and nfd-android on Android device
   * Ndnfit: <a href = "https://github.com/zhehaowang/ndnfit/releases">download</a>
   * Identity Manager: <a href = "https://github.com/zhehaowang/android-identity-manager/releases">download</a>
