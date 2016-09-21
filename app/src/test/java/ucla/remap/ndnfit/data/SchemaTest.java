@@ -3,6 +3,9 @@ package ucla.remap.ndnfit.data;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import net.named_data.jndn.Name;
+import net.named_data.jndn.encoding.EncodingException;
+
 import org.junit.Test;
 
 import ucla.remap.ndnfit.timelocation.TimeLocation;
@@ -16,12 +19,24 @@ public class SchemaTest {
     protected static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
+    public void testTimestamp() {
+        Name name = new Name("").appendTimestamp(1453846200000L);
+        System.out.println(name.toUri());
+        Name name1 = new Name("%FC%00%00%01R%824%1F%40");
+        try {
+            System.out.println(name1.get(0).toTimestamp());
+        } catch (EncodingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
     public void testTimeLocation() throws JsonProcessingException {
         TimeLocationList test = new TimeLocationList();
         test.addItem(new TimeLocation(3,3,3,3));
         test.addItem(new TimeLocation(1,1,1,1));
         test.addItem(new TimeLocation(2,2,2,2));
-        test.addItem(new TimeLocation(2, 2, 2, System.currentTimeMillis()));
+        test.addItem(new TimeLocation(2, 2, 2, System.currentTimeMillis() * 1000));
         String documentAsString = objectMapper.writeValueAsString(test.getItems());
         System.out.println(documentAsString);
         TimeLocationFormatTester tester = new TimeLocationFormatTester();
@@ -34,7 +49,7 @@ public class SchemaTest {
         test.addItem(new Position(3,3,3));
         test.addItem(new Position(1,1,1));
         test.addItem(new Position(2,2,2));
-        test.addItem(new Position(2,2,System.currentTimeMillis()));
+        test.addItem(new Position(2,2,System.currentTimeMillis() * 1000));
         String documentAsString = objectMapper.writeValueAsString(test.getItems());
         System.out.println(documentAsString);
         PositionFormatTester tester = new PositionFormatTester();

@@ -13,6 +13,7 @@ import com.google.maps.model.SnappedPoint;
 import java.util.ArrayList;
 import java.util.List;
 
+import ucla.remap.ndnfit.NDNFitCommon;
 import ucla.remap.ndnfit.ndndb.NdnDBManager;
 import ucla.remap.ndnfit.data.Position;
 import ucla.remap.ndnfit.db.DBManager;
@@ -26,6 +27,8 @@ public class GPSListener implements LocationListener{
     DBManager mDBManager;
     NdnDBManager mNdnDBManager;
     List<Position> trackPoints;
+    //
+    List<Position> trackPointsForNDN;
 
     private static String TAG = "GPSListener";
 
@@ -34,10 +37,12 @@ public class GPSListener implements LocationListener{
         mDBManager = DBManager.getInstance();
         mNdnDBManager = NdnDBManager.getInstance();
         trackPoints = new ArrayList<>();
+        trackPointsForNDN = new ArrayList();
     }
 
     public void startTrack() {
         trackPoints.clear();
+        trackPointsForNDN.clear();
     }
 
     public void stopTrack(List<SnappedPoint> snappedPoints) {
@@ -70,7 +75,11 @@ public class GPSListener implements LocationListener{
         }
 
         mDBManager.recordPoints(renderedPoints);
-        mNdnDBManager.recordPoints(renderedPoints);
+//        mNdnDBManager.recordPoints(renderedPoints);
+        if(trackPointsForNDN.size() > 0) {
+            long startMinute = trackPointsForNDN.get(0).getTimeStamp() / NDNFitCommon.ONE_MINUTE;
+            mNdnDBManager.recordPoints(trackPointsForNDN, startMinute * NDNFitCommon.ONE_MINUTE);
+        }
     }
 
     public List<Position> getTrackPoints() {
@@ -101,8 +110,32 @@ public class GPSListener implements LocationListener{
 //        String msg = "record got inserted:" + currentTurn + "-" + String.valueOf(rowPosition);
 //        Toast.makeText(mCtx, msg, Toast.LENGTH_SHORT).show();
         trackPoints.add(position);
+
+        packDataPoints(trackPointsForNDN, position);
+        trackPointsForNDN.add(position);
         String msg = "Lat: " + lat + ", Lng: " + lng;
         Toast.makeText(mainCtx, msg, Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * pack origin data to create NDN data packets
+     * @param trackPoints
+     */
+    private void packDataPoints(List<Position> trackPoints, Position newestPosition) {
+        if(trackPoints.size() <= 1) {
+            return;
+        }
+        long startMinute = trackPoints.get(0).getTimeStamp() / NDNFitCommon.ONE_MINUTE;
+        long endMinute = trackPoints.get(trackPoints.size()-1).getTimeStamp() / NDNFitCommon.ONE_MINUTE;
+        long newestMin = newestPosition.getTimeStamp() / NDNFitCommon.ONE_MINUTE;
+        if (endMinute == newestMin)
+            return;
+        //longer than 10 minutes or
+        //more than 20 points and not in the same minute
+        if(newestMin - startMinute >= 1 || newestMin - startMinute >= 10 || (newestMin - startMinute > 0 && trackPoints.size() > 20)) {
+            mNdnDBManager.recordPoints(trackPoints, startMinute * NDNFitCommon.ONE_MINUTE);
+            trackPoints.clear();
+        }
     }
 
     public void onProviderDisabled(String provider) {

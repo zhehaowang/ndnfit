@@ -73,30 +73,8 @@ public class InsertionStatusChecker implements Runnable {
             }
             catalogCursor.close();
 
-            Cursor updateInfoCursor = ndnDBManager.getAllUnuploadedUpdateInfo();
-            final List<Name> updateInfoConfirmation = new ArrayList<>();
-            while (updateInfoCursor.moveToNext()) {
-                byte[] raw = updateInfoCursor.getBlob(1);
-                Data data = new Data();
-                data.wireDecode(new Blob(raw));
-                final Name name = data.getName();
-                Interest confirmInterest = new Interest(new Name(NDNFitCommon.CONFIRM_PREFIX).append(name));
-                confirmInterest.setInterestLifetimeMilliseconds(4000);
-                face.expressInterest(confirmInterest, new OnData() {
-                    @Override
-                    public void onData(Interest interest, Data data) {
-                        updateInfoConfirmation.add(name);
-                    }
-                }, new RequestDataTimeOut());
-            }
-            updateInfoCursor.close();
-
             Thread.sleep(5000);
 
-            for(Name one : updateInfoConfirmation) {
-                ndnDBManager.markUpdateInfoUploaded(one);
-                Log.d(TAG, "Marked " + one.toUri() + " as uploaded");
-            }
             for(Name one : catalogsConfirmation) {
                 ndnDBManager.markCatalogUploaded(one);
                 Log.d(TAG, "Marked " + one.toUri() + " as uploaded");

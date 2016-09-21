@@ -16,7 +16,6 @@ public class NdnDBDHelper {
     public static void deleteUselessData(Turn lastTurn) {
         long timepoint = (lastTurn.getStartTimeStamp() /
                 NDNFitCommon.CATALOG_TIME_RANGE) * NDNFitCommon.CATALOG_TIME_RANGE;
-        ndnDBManager.deleteUploadedUpdateInfoExceptLast();
         ndnDBManager.deleteUploadedCatalogBefore(timepoint);
         ndnDBManager.deleteUploadedPointsBefore(timepoint);
     }

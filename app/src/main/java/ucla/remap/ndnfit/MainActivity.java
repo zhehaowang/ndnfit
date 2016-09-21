@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+import ucla.remap.ndnfit.data.CatalogDaemon;
 import ucla.remap.ndnfit.db.DBManager;
 import ucla.remap.ndnfit.db.TrackContract;
 import ucla.remap.ndnfit.gps.GPSListener;
@@ -250,12 +251,21 @@ public class MainActivity extends ActionBarActivity {
         }
 
 
+//        NetworkDaemon.startCreatingCatalog(scheduler);
+        NetworkDaemon.startNetworkService(scheduler);
+//        NetworkDaemon.insertIntoRepo(scheduler);
+        NetworkDaemon.checkInsertionStatus(scheduler);
+        CatalogDaemon.startCreatingCatalog(scheduler);
+
+
         // btnStart
         Button btnStart = (Button) findViewById(R.id.btnStart);
         btnStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 // start tracking.
+                if(mInTracking == true)
+                    return;
                 startLocationService();
                 mTaskSnapToRoads =
                         new AsyncTask<Void, Void, List<SnappedPoint>>() {
@@ -296,6 +306,8 @@ public class MainActivity extends ActionBarActivity {
             public void onClick(View v) {
                 // stop tracking
 //            renderPositions();
+                if(mInTracking == false)
+                    return;
                 stopLocationService();
             }
         });
@@ -359,10 +371,6 @@ public class MainActivity extends ActionBarActivity {
 //            }
 //        });
 
-//        NetworkDaemon.startCreatingCatalog(scheduler);
-        NetworkDaemon.startNetworkService(scheduler);
-//        NetworkDaemon.insertIntoRepo(scheduler);
-        NetworkDaemon.checkInsertionStatus(scheduler);
     }
 
     private ArrayList prepareData() {
@@ -423,12 +431,13 @@ public class MainActivity extends ActionBarActivity {
         float minDistance = 0;
 //        DBManager dbManager = DBManager.getInstance();
 //        dbManager.startTrack();
-        mGPSListener.startTrack();
+
         LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
         // Zhehao: having both on seems to crash AsyncTask sometimes, investigating; GPS_PROVIDER never worked for me but NETWORK provider did
         //manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, minTime, minDistance, mGPSListener);
         manager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, minTime, minDistance, mGPSListener);
+        mGPSListener.startTrack();
 
         Toast.makeText(getApplicationContext(), "Location Service Started", Toast.LENGTH_SHORT).show();
         mInTracking = true;

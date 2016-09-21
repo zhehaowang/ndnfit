@@ -28,9 +28,11 @@ public class NDNFitCommon {
 
     public static final Name REPO_COMMAND_PREFIX = new Name("/ndn/edu/ucla/remap/ndnfit/repo");;
 
-    public static final long CATALOG_TIME_RANGE = TimeUnit.MINUTES.toMicros(10);
+    public static final long CATALOG_TIME_RANGE = TimeUnit.MINUTES.toMicros(2);
 
     public static final long FETCH_CONFIRMATION_TIME_INTERVAL = TimeUnit.MINUTES.toMicros(1);
+
+    public static final long ONE_MINUTE = TimeUnit.MINUTES.toMicros(1);
 
     public static void setDataPrefix(Name userPrefix) {
         USER_PREFIX = new Name(userPrefix);

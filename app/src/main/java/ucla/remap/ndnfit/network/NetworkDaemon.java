@@ -74,8 +74,8 @@ public class NetworkDaemon {
 
                         face.registerPrefix(NDNFitCommon.CATALOG_PREFIX, receiveInterest,
                                 registerFailure);
-                        face.registerPrefix(NDNFitCommon.UPDATE_INFO_PREFIX, receiveInterest,
-                                registerFailure);
+//                        face.registerPrefix(NDNFitCommon.UPDATE_INFO_PREFIX, receiveInterest,
+//                                registerFailure);
                         Name registerName = new Name(NDNFitCommon.REGISTER_PREFIX).append(NDNFitCommon.USER_PREFIX);
                         Interest registerInterest = new Interest();
                         registerInterest.setName(registerName);
