@@ -5,6 +5,7 @@ import android.util.Log;
 
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Name;
+import net.named_data.jndn.encrypt.Schedule;
 
 import java.util.concurrent.TimeUnit;
 
@@ -45,7 +46,7 @@ public class CatalogCreator implements Runnable {
             Catalog catalog = new Catalog();
             catalog.setCatalogTimePoint(lastRunTime);
             while (cursor.moveToNext()) {
-                catalog.addPointTime(cursor.getLong(0));
+                catalog.addPointTime(Schedule.toIsoString(cursor.getLong(0)/1000));
             }
             Log.e("the size of ","");
             mNdnDBManager.insertCatalog(catalog);

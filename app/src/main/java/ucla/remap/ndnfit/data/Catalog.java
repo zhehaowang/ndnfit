@@ -9,7 +9,7 @@ import java.util.List;
  */
 public class Catalog {
     private long catalogTimePoint;
-    private final List<Long> pointTime = new ArrayList<>();
+    private final List<String> pointTime = new ArrayList<>();
 
     public long getCatalogTimePoint() {
         return catalogTimePoint;
@@ -19,16 +19,16 @@ public class Catalog {
         this.catalogTimePoint = catalogTimePoint;
     }
 
-    public List<Long> getPointTime() {
+    public List<String> getPointTime() {
         return pointTime;
     }
 
-    public void setPointTime(List<Long> pointTime) {
+    public void setPointTime(List<String> pointTime) {
         this.pointTime.addAll(pointTime);
         Collections.sort(pointTime);
     }
 
-    public void addPointTime(long one) {
+    public void addPointTime(String one) {
         pointTime.add(one);
         Collections.sort(pointTime);
     }

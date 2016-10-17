@@ -73,6 +73,42 @@ public class InsertionStatusChecker implements Runnable {
             }
             catalogCursor.close();
 
+            Cursor cKeyCatalogCursor = ndnDBManager.getAllUnuploaedCKeyCatalog();
+            final List<Name> cKeyCatalogsConfirmation = new ArrayList<>();
+            while (cKeyCatalogCursor.moveToNext()) {
+                byte[] raw = cKeyCatalogCursor.getBlob(1);
+                Data data = new Data();
+                data.wireDecode(new Blob(raw));
+                final Name name = data.getName();
+                Interest confirmInterest = new Interest(new Name(NDNFitCommon.CONFIRM_PREFIX).append(name));
+                confirmInterest.setInterestLifetimeMilliseconds(4000);
+                face.expressInterest(confirmInterest, new OnData() {
+                    @Override
+                    public void onData(Interest interest, Data data) {
+                        cKeyCatalogsConfirmation.add(name);
+                    }
+                }, new RequestDataTimeOut());
+            }
+            cKeyCatalogCursor.close();
+
+            Cursor cKeyCursor = ndnDBManager.getAllUnuploadedCKey();
+            final List<Name> cKeyConfirmation = new ArrayList<>();
+            while (cKeyCursor.moveToNext()) {
+                byte[] raw = cKeyCursor.getBlob(1);
+                Data data = new Data();
+                data.wireDecode(new Blob(raw));
+                final Name name = data.getName();
+                Interest confirmInterest = new Interest(new Name(NDNFitCommon.CONFIRM_PREFIX).append(name));
+                confirmInterest.setInterestLifetimeMilliseconds(4000);
+                face.expressInterest(confirmInterest, new OnData() {
+                    @Override
+                    public void onData(Interest interest, Data data) {
+                        cKeyConfirmation.add(name);
+                    }
+                }, new RequestDataTimeOut());
+            }
+            cKeyCursor.close();
+
             Thread.sleep(5000);
 
             for(Name one : catalogsConfirmation) {
@@ -81,6 +117,14 @@ public class InsertionStatusChecker implements Runnable {
             }
             for(Name one : pointsConfirmation) {
                 ndnDBManager.markPointUploaded(one);
+                Log.d(TAG, "Marked " + one.toUri() + " as uploaded");
+            }
+            for(Name one : cKeyCatalogsConfirmation) {
+                ndnDBManager.markCKeyCatalogUploaded(one);
+                Log.d(TAG, "Marked " + one.toUri() + " as uploaded");
+            }
+            for(Name one : cKeyConfirmation) {
+                ndnDBManager.markCKeyUploaded(one);
                 Log.d(TAG, "Marked " + one.toUri() + " as uploaded");
             }
         } catch (Exception e) {

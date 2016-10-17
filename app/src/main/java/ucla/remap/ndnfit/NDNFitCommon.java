@@ -10,7 +10,9 @@ import java.util.concurrent.TimeUnit;
 public class NDNFitCommon {
     public static Name USER_PREFIX = new Name("/org/openmhealth/haitao");
 
-    public static Name DATA_PREFIX = new Name("/org/openmhealth/haitao/data/fitness/physical_activity/time_location");
+    public static Name DATA_TYPE = new Name("/fitness/physical_activity/time_location");
+
+    public static Name DATA_PREFIX = new Name("/org/openmhealth/haitao/SAMPLE/fitness/physical_activity/time_location");
 
     public static Name CATALOG_PREFIX = new Name(DATA_PREFIX).append("catalog");
 
@@ -21,6 +23,10 @@ public class NDNFitCommon {
 //    public static Name CATALOG_CONFIRM_PREFIX = new Name("/ndn/edu/ucla/remap/ndnfit/dsu/confirm").append(new Name(CATALOG_PREFIX));
 //
 //    public static Name DATA_CONFIRM_PREFIX =  new Name("/ndn/edu/ucla/remap/ndnfit/dsu/confirm").append(new Name(DATA_PREFIX));
+
+    public static Name CKEY_PREFIX = new Name(DATA_PREFIX).append("C-KEY");
+
+    public static Name CKEY_CATALOG_PREFIX = new Name(CKEY_PREFIX).append("catalog");
 
     public static final Name CONFIRM_PREFIX = new Name("/ndn/edu/ucla/remap/ndnfit/dsu/confirm");
 
@@ -36,9 +42,11 @@ public class NDNFitCommon {
 
     public static void setDataPrefix(Name userPrefix) {
         USER_PREFIX = new Name(userPrefix);
-        DATA_PREFIX = new Name(userPrefix).append(new Name("data/fitness/physical_activity/time_location"));
+        DATA_PREFIX = new Name(userPrefix).append(new Name("SAMPLE/fitness/physical_activity/time_location"));
         CATALOG_PREFIX = new Name(DATA_PREFIX).append("catalog");
         UPDATE_INFO_PREFIX = new Name(DATA_PREFIX).append("update_info");
+        CKEY_PREFIX = new Name(DATA_PREFIX).append("C-KEY");
+        CKEY_CATALOG_PREFIX = new Name(CKEY_PREFIX).append("catalog");
 //        DATA_CONFIRM_PREFIX = new Name("/ndn/edu/ucla/remap/ndnfit/dsu/confirm").append(new Name(DATA_PREFIX));
 //        CATALOG_CONFIRM_PREFIX = new Name("/ndn/edu/ucla/remap/ndnfit/dsu/confirm").append(new Name(CATALOG_PREFIX));
 //        UPDATE_INFO_CONFIRM_PREFIX = new Name("/ndn/edu/ucla/remap/ndnfit/dsu/confirm").append(UPDATE_INFO_PREFIX);

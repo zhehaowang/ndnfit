@@ -11,19 +11,27 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import net.named_data.jndn.Data;
+import net.named_data.jndn.Face;
 import net.named_data.jndn.Name;
 import net.named_data.jndn.encoding.EncodingException;
+import net.named_data.jndn.encrypt.AndroidSqlite3ProducerDb;
+import net.named_data.jndn.encrypt.Producer;
+import net.named_data.jndn.encrypt.ProducerDb;
+import net.named_data.jndn.encrypt.Schedule;
 import net.named_data.jndn.security.KeyChain;
 import net.named_data.jndn.security.identity.AndroidSqlite3IdentityStorage;
 import net.named_data.jndn.security.identity.FilePrivateKeyStorage;
 import net.named_data.jndn.security.identity.IdentityManager;
 import net.named_data.jndn.security.identity.IdentityStorage;
+import net.named_data.jndn.security.identity.MemoryIdentityStorage;
+import net.named_data.jndn.security.identity.MemoryPrivateKeyStorage;
 import net.named_data.jndn.security.identity.PrivateKeyStorage;
 import net.named_data.jndn.security.policy.SelfVerifyPolicyManager;
 import net.named_data.jndn.util.Blob;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
 import ucla.remap.ndnfit.MainActivity;
@@ -41,20 +49,51 @@ public class NdnDBManager implements Serializable {
   private String mAppID;
   private Name mAppCertificateName;
   private KeyChain mKeyChain;
+  private Producer dataProducer;
+  private Face face = new Face();
+  private String databaseFilePath;
+  private ProducerDb database;
+  private List<Name> CKeyList = new ArrayList<>();
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
 //    private final ElementReader elementReader;
+
+
 
   private static final String DB_NAME = "ndndb";
   private static final String TAG = "NdnDBManager";
   private static final String POINT_TABLE = "point_table";
   private static final String TURN_TABLE = "turn_table";
   private static final String CATALOG_TABLE = "catalog_table";
+  private static final String CKEY_CATALOG_TABLE = "ckey_catalog_table";
+  private static final String ENCRYPTED_CKEY_TABLE = "encrypted_ckey_table";
 
   private static NdnDBManager instance = new NdnDBManager();
 
   private NdnDBManager() {
     mAppID = "";
+    try {
+//      databaseFilePath = mCtx.getFilesDir().getAbsolutePath() + "/" + "producer.db";
+//      database = new AndroidSqlite3ProducerDb(databaseFilePath);
+      MemoryIdentityStorage identityStorage = new MemoryIdentityStorage();
+      MemoryPrivateKeyStorage privateKeyStorage
+        = new MemoryPrivateKeyStorage();
+      mKeyChain = new KeyChain(
+        new IdentityManager(identityStorage, privateKeyStorage),
+        new SelfVerifyPolicyManager(identityStorage));
+      mKeyChain.setFace(face);
+
+      Name identityName = NDNFitCommon.USER_PREFIX;
+      Name keyName = mKeyChain.generateRSAKeyPairAsDefault(identityName);
+      Name certificateName = keyName.getSubName(0, keyName.size() - 1)
+        .append("KEY").append(keyName.get(-1)).append("ID-CERT")
+        .append("0");
+      face.setCommandSigningInfo(mKeyChain, certificateName);
+//      dataProducer = new Producer(
+//        NDNFitCommon.USER_PREFIX, NDNFitCommon.DATA_TYPE, face, keyChain, database);
+    } catch (Exception ex) {
+      ex.printStackTrace();
+    }
   }
 
   public static NdnDBManager getInstance() {
@@ -63,6 +102,10 @@ public class NdnDBManager implements Serializable {
 
   public void init(Context ctx) {
     mCtx = ctx;
+    databaseFilePath = mCtx.getFilesDir().getAbsolutePath() + "/" + "producer.db";
+    database = new AndroidSqlite3ProducerDb(databaseFilePath);
+    dataProducer = new Producer(
+        NDNFitCommon.USER_PREFIX, NDNFitCommon.DATA_TYPE, face, mKeyChain, database);
     prepareDB();
     createTable();
   }
@@ -82,6 +125,8 @@ public class NdnDBManager implements Serializable {
       // For now, the verification policy manager, and the face to fetch required cert does not matter
       // So we use SelfVerifyPolicyManager, and don't call KeyChain.setFace()
       mKeyChain = new KeyChain(identityManager, new SelfVerifyPolicyManager(identityStorage));
+      dataProducer = new Producer(
+        NDNFitCommon.USER_PREFIX, NDNFitCommon.DATA_TYPE, face, mKeyChain, database);
     }
   }
 
@@ -135,6 +180,30 @@ public class NdnDBManager implements Serializable {
     return false;
   }
 
+  protected boolean isCKeyCatalogTableCreated() {
+    Cursor cursor = mDB.rawQuery("select DISTINCT tbl_name from sqlite_master where tbl_name = '" + CKEY_CATALOG_TABLE + "'", null);
+    if (cursor != null) {
+      if (cursor.getCount() > 0) {
+        cursor.close();
+        return true;
+      }
+      cursor.close();
+    }
+    return false;
+  }
+
+  protected boolean isEncryptedCKeyTableCreated() {
+    Cursor cursor = mDB.rawQuery("select DISTINCT tbl_name from sqlite_master where tbl_name = '" + ENCRYPTED_CKEY_TABLE + "'", null);
+    if (cursor != null) {
+      if (cursor.getCount() > 0) {
+        cursor.close();
+        return true;
+      }
+      cursor.close();
+    }
+    return false;
+  }
+
   /**
    * Create target tables.
    */
@@ -163,37 +232,128 @@ public class NdnDBManager implements Serializable {
           + " primary key (timepoint, version));"
       );
     }
+
+    if(!isCKeyCatalogTableCreated()) {
+      mDB.execSQL("create table " + CKEY_CATALOG_TABLE + "("
+          + " timepoint TIMESTAMP PRIMARY KEY, "
+          + " data BLOB NOT NULL, "
+          + " uploaded integer DEFAULT 0);"
+      );
+    }
+
+    if(!isEncryptedCKeyTableCreated()) {
+      mDB.execSQL("create table " + ENCRYPTED_CKEY_TABLE + "("
+          + " name TEXT PRIMARY KEY, "
+          + " data BLOB NOT NULL, "
+          + " uploaded integer DEFAULT 0);"
+      );
+    }
+  }
+
+  private void saveCKey(long hourPoint, List keys) {
+    ContentValues keyCatalogRecord = new ContentValues();
+    keyCatalogRecord.put("timepoint", hourPoint);
+//            Log.e("insert ckeys", contentKeyName.toUri());
+    List<String> keyNameList = new ArrayList<>();
+    for (Object key: keys) {
+      keyNameList.add(((Data) key).getName().toUri());
+    }
+    Data keyNames = new Data();
+    keyNames.setName(new Name(NDNFitCommon.CKEY_CATALOG_PREFIX).append(Schedule.toIsoString(hourPoint)));
+    try {
+      String documentAsString = objectMapper.writeValueAsString(keyNameList);
+      keyNames.setContent(new Blob(documentAsString));
+    } catch (JsonProcessingException e) {
+      e.printStackTrace();
+    }
+    if (mAppID != null && mAppID != "") {
+      try {
+        mKeyChain.sign(keyNames, mAppCertificateName);
+        Log.e("zhehao", "Signing data point with ID: " + mAppCertificateName.toUri());
+        Log.e("zhehao", "Produced: " + keyNames.getName().toUri());
+      } catch (Exception e) {
+        Log.e("zhehao", "Signing exception: " + e.getMessage());
+      }
+    }
+    ByteBuffer original = keyNames.wireEncode().buf();
+    ByteBuffer clone = ByteBuffer.allocate(original.capacity());
+    original.rewind();//copy from the beginning
+    clone.put(original);
+    original.rewind();
+    clone.flip();
+    byte[] buffer = clone.array();
+    keyCatalogRecord.put("data", buffer);
+    keyCatalogRecord.put("uploaded", 0);
+    mDB.insert(CKEY_CATALOG_TABLE, null, keyCatalogRecord);
+
+    for (Object key: keys) {
+      Data keyData = (Data) key;
+      ContentValues keyRecord = new ContentValues();
+      keyRecord.put("name", keyData.getName().toUri());
+      original = keyData.wireEncode().buf();
+      clone = ByteBuffer.allocate(original.capacity());
+      original.rewind();//copy from the beginning
+      clone.put(original);
+      original.rewind();
+      clone.flip();
+      buffer = clone.array();
+      keyRecord.put("data", buffer);
+      keyRecord.put("uploaded", 0);
+      mDB.insert(ENCRYPTED_CKEY_TABLE, null, keyRecord);
+    }
   }
 
   public void recordPoints(List<Position> positionList, long timepoint) {
     Log.d(TAG, "recordPoints called, time: " + System.currentTimeMillis());
     Data previousData = getPoint(timepoint);
     ContentValues record = new ContentValues();
-    Name name = new Name(NDNFitCommon.DATA_PREFIX).appendTimestamp(timepoint);
+//    Name name = new Name(NDNFitCommon.DATA_PREFIX).appendTimestamp(timepoint);
     Data data = new Data();
-    data.setName(name);
+
+//    data.setName(name);
     String documentAsString = null;
     try {
+      if(dataProducer == null)
+        System.out.println("the pointer is null");
+      final long hourpoint = timepoint / 1000 / 3600000 * 3600000;
+      Name contentKeyName = dataProducer.createContentKey((double)timepoint/1000,
+        new Producer.OnEncryptedKeys() {
+          public void onEncryptedKeys(List keys) {
+            saveCKey(hourpoint, keys);
+          }
+        });
+      // fake a c-key
+      if(!CKeyList.contains(contentKeyName)) {
+        List<Data> keys = new ArrayList<>();
+        Data fakedCkey = new Data();
+        fakedCkey.setName(NDNFitCommon.CKEY_PREFIX.append("0"));
+        fakedCkey.setContent(new Blob("OK"));
+        keys.add(fakedCkey);
+        saveCKey(hourpoint, keys);
+        CKeyList.add(contentKeyName);
+      }
       documentAsString = objectMapper.writeValueAsString(positionList);
       if(previousData == null)
-        data.setContent(new Blob(documentAsString));
+//        data.setContent(new Blob(documentAsString));
+        dataProducer.produce(data, (double)timepoint/1000, new Blob(documentAsString));
       else {
         String previousDataContent = previousData.getContent().toString();
         String content = previousDataContent.concat(documentAsString).replace("][",",");
-        data.setContent(new Blob(content));
+//        data.setContent(new Blob(content));
+        dataProducer.produce(data, (double)timepoint/1000, new Blob(content));
       }
 
       if (mAppID != null && mAppID != "") {
         try {
           mKeyChain.sign(data, mAppCertificateName);
           Log.e("zhehao", "Signing data point with ID: " + mAppCertificateName.toUri());
-          Log.e("zhehao", "Produced: " + name.toUri());
+          Log.e("zhehao", "Produced: " + data.getName().toUri());
         } catch (Exception e) {
           Log.e("zhehao", "Signing exception: " + e.getMessage());
         }
       }
 
-      Log.e("insert data point", name.toUri());
+      Log.e("insert data point", data.getName().toUri());
       Log.e("timestamp", "" + timepoint);
       record.put("timepoint", timepoint);
       ByteBuffer original = data.wireEncode().buf();
@@ -211,7 +371,7 @@ public class NdnDBManager implements Serializable {
         mDB.update(POINT_TABLE, record, "timepoint = " + timepoint, null);
       Log.d(TAG, "finish recording");
       Log.d(TAG, Integer.toString(buffer.length));
-    } catch (JsonProcessingException e) {
+    } catch (Exception e) {
       e.printStackTrace();
     }
   }
@@ -296,7 +456,7 @@ public class NdnDBManager implements Serializable {
 
 
     try {
-      Cursor cursor = mDB.query(POINT_TABLE, columns, "timepoint = " + name.get(-1).toTimestamp(), null, null, null, null);
+      Cursor cursor = mDB.query(POINT_TABLE, columns, "timepoint = " + (long) Schedule.fromIsoString(name.get(-1).toEscapedString()) * 1000, null, null, null, null);
       if (cursor.moveToNext()) {
         byte[] raw = cursor.getBlob(1);
         Data data = new Data();
@@ -351,7 +511,7 @@ public class NdnDBManager implements Serializable {
     ContentValues record = new ContentValues();
     catalog.sortItems();
     Data data = new Data();
-    Name name = new Name(NDNFitCommon.CATALOG_PREFIX).appendTimestamp(catalog.getCatalogTimePoint());
+    Name name = new Name(NDNFitCommon.CATALOG_PREFIX).append(Schedule.toIsoString(catalog.getCatalogTimePoint() / 1000));
     data.setName(name);
     Log.e("insert catalog", name.toUri());
     Log.e("timestamp", "" + catalog.getCatalogTimePoint());
@@ -401,7 +561,7 @@ public class NdnDBManager implements Serializable {
         cursor = mDB.query(CATALOG_TABLE, columns, null, null, null, null, "timepoint ASC");
       }
       else{
-        cursor = mDB.query(CATALOG_TABLE, columns, "timepoint = " + name.get(-1).toTimestamp(),
+        cursor = mDB.query(CATALOG_TABLE, columns, "timepoint = " + (long) Schedule.fromIsoString(name.get(-1).toEscapedString()) * 1000,
           null, null, null, null);
       }
       if (cursor.moveToNext()) {
@@ -416,7 +576,47 @@ public class NdnDBManager implements Serializable {
     return null;
   }
 
+  public Data getCKeyCatalog(Name name) {
+    if (!NDNFitCommon.CKEY_CATALOG_PREFIX.match(name))
+      return null;
+    String[] columns = {"timepoint", "data", "uploaded"};
+    try {
+      Cursor cursor = mDB.query(CKEY_CATALOG_TABLE, columns, "timepoint = " + (long) Schedule.fromIsoString(name.get(-1).toEscapedString()), null, null, null, null);
+      if (cursor.moveToNext()) {
+        byte[] raw = cursor.getBlob(1);
+        Data data = new Data();
+        data.wireDecode(new Blob(raw));
+        return data;
+      }
+    } catch (EncodingException e) {
+      e.printStackTrace();
+    }
+    return null;
+  }
+
+  public Data getCKey(Name name) {
+    if (!NDNFitCommon.CKEY_PREFIX.match(name))
+      return null;
+    String[] columns = {"name", "data", "uploaded"};
+    try {
+      Cursor cursor = mDB.query(ENCRYPTED_CKEY_TABLE, columns, "name = \"" + name.toUri() + "\"", null, null, null, null);
+      if (cursor.moveToNext()) {
+        byte[] raw = cursor.getBlob(1);
+        Data data = new Data();
+        data.wireDecode(new Blob(raw));
+        return data;
+      }
+    } catch (EncodingException e) {
+      e.printStackTrace();
+    }
+    return null;
+  }
+
   public Data readData(Name name) {
+    if (NDNFitCommon.CKEY_CATALOG_PREFIX.match(name))
+      return getCKeyCatalog(name);
+    if (NDNFitCommon.CKEY_PREFIX.match(name))
+      return getCKey(name);
     if (NDNFitCommon.CATALOG_PREFIX.match(name))
       return getCatalog(name);
     if (NDNFitCommon.DATA_PREFIX.match(name))
@@ -437,13 +637,25 @@ public class NdnDBManager implements Serializable {
     return cursor;
   }
 
+  public Cursor getAllUnuploaedCKeyCatalog() {
+    String[] columns = {"timepoint", "data", "uploaded"};
+    Cursor cursor = mDB.query(CKEY_CATALOG_TABLE, columns, "uploaded = 0", null, null, null, null);
+    return cursor;
+  }
+
+  public Cursor getAllUnuploadedCKey() {
+    String[] columns = {"name", "data", "uploaded"};
+    Cursor cursor = mDB.query(ENCRYPTED_CKEY_TABLE, columns, "uploaded = 0", null, null, null, null);
+    return cursor;
+  }
+
   public void markPointUploaded(Name name) {
-    if (name.getPrefix(-1).compare(NDNFitCommon.DATA_PREFIX) != 0)
+    if (!NDNFitCommon.DATA_PREFIX.match(name))
       return;
     try {
       ContentValues record = new ContentValues();
       record.put("uploaded", 1);
-      mDB.update(POINT_TABLE, record, "timepoint = " + name.get(-1).toTimestamp(), null);
+      mDB.update(POINT_TABLE, record, "timepoint = " + (long) Schedule.fromIsoString(name.get(7).toEscapedString()) * 1000, null);
 //            mDB.delete(POINT_TABLE, "timepoint = " + name.get(-1).toTimestamp(), null);
     } catch (EncodingException e) {
       e.printStackTrace();
@@ -456,9 +668,33 @@ public class NdnDBManager implements Serializable {
     try {
       ContentValues record = new ContentValues();
       record.put("uploaded", 1);
-      mDB.update(CATALOG_TABLE, record, "timepoint = " + name.get(-1).toTimestamp() + " AND version = 1", null);
+      mDB.update(CATALOG_TABLE, record, "timepoint = " + (long) Schedule.fromIsoString(name.get(-1).toEscapedString()) * 1000 + " AND version = 1", null);
 //            mDB.delete(CATALOG_TABLE, "timepoint = " + name.get(-2).toTimestamp() + " AND version = " + name.get(-1).toVersion(), null);
     } catch (EncodingException e) {
+      e.printStackTrace();
+    }
+  }
+
+  public void markCKeyCatalogUploaded(Name name) {
+    if (!NDNFitCommon.CKEY_CATALOG_PREFIX.match(name))
+      return;
+    try {
+      ContentValues record = new ContentValues();
+      record.put("uploaded", 1);
+      mDB.update(CKEY_CATALOG_TABLE, record, "timepoint = " + (long) Schedule.fromIsoString(name.get(-1).toEscapedString()), null);
+    } catch (EncodingException e) {
+      e.printStackTrace();
+    }
+  }
+
+  public void markCKeyUploaded(Name name) {
+    if (!NDNFitCommon.CKEY_PREFIX.match(name))
+      return;
+    try {
+      ContentValues record = new ContentValues();
+      record.put("uploaded", 1);
+      mDB.update(ENCRYPTED_CKEY_TABLE, record, "name = \"" + name.toUri() + "\"", null);
+    } catch (Exception e) {
       e.printStackTrace();
     }
   }
@@ -480,6 +716,8 @@ public class NdnDBManager implements Serializable {
     mDB.execSQL("delete from " + TURN_TABLE);
     mDB.execSQL("delete from " + POINT_TABLE);
     mDB.execSQL("delete from " + CATALOG_TABLE);
+    mDB.execSQL("delete from " + CKEY_CATALOG_TABLE);
+    mDB.execSQL("delete from " + ENCRYPTED_CKEY_TABLE);
     Log.i(TAG, "RESET Table");
   }
 }
