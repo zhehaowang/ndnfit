@@ -12,9 +12,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
+import net.named_data.jndn.Interest;
 import net.named_data.jndn.Name;
+import net.named_data.jndn.NetworkNack;
+import net.named_data.jndn.OnData;
+import net.named_data.jndn.OnNetworkNack;
+import net.named_data.jndn.OnTimeout;
 import net.named_data.jndn.encoding.EncodingException;
 import net.named_data.jndn.encrypt.AndroidSqlite3ProducerDb;
+import net.named_data.jndn.encrypt.EncryptError;
 import net.named_data.jndn.encrypt.Producer;
 import net.named_data.jndn.encrypt.ProducerDb;
 import net.named_data.jndn.encrypt.Schedule;
@@ -50,7 +56,7 @@ public class NdnDBManager implements Serializable {
   private Name mAppCertificateName;
   private KeyChain mKeyChain;
   private Producer dataProducer;
-  private Face face = new Face();
+  private Face face;
   private String databaseFilePath;
   private ProducerDb database;
   private List<Name> CKeyList = new ArrayList<>();
@@ -81,16 +87,15 @@ public class NdnDBManager implements Serializable {
       mKeyChain = new KeyChain(
         new IdentityManager(identityStorage, privateKeyStorage),
         new SelfVerifyPolicyManager(identityStorage));
-      mKeyChain.setFace(face);
+      /*mKeyChain.setFace(face);
+
 
       Name identityName = NDNFitCommon.USER_PREFIX;
       Name keyName = mKeyChain.generateRSAKeyPairAsDefault(identityName);
       Name certificateName = keyName.getSubName(0, keyName.size() - 1)
         .append("KEY").append(keyName.get(-1)).append("ID-CERT")
         .append("0");
-      face.setCommandSigningInfo(mKeyChain, certificateName);
-//      dataProducer = new Producer(
-//        NDNFitCommon.USER_PREFIX, NDNFitCommon.DATA_TYPE, face, keyChain, database);
+      face.setCommandSigningInfo(mKeyChain, certificateName);*/
     } catch (Exception ex) {
       ex.printStackTrace();
     }
@@ -100,7 +105,8 @@ public class NdnDBManager implements Serializable {
     return instance;
   }
 
-  public void init(Context ctx) {
+  public void init(Context ctx, Face face) {
+    this.face = face;
     mCtx = ctx;
     databaseFilePath = mCtx.getFilesDir().getAbsolutePath() + "/" + "producer.db";
     database = new AndroidSqlite3ProducerDb(databaseFilePath);
@@ -111,6 +117,7 @@ public class NdnDBManager implements Serializable {
   }
 
   public void setAppID(String appID, Name certName) {
+    Log.e(TAG, "setAppId is called");
     mAppID = appID;
     mAppCertificateName = new Name(certName);
 
@@ -251,6 +258,8 @@ public class NdnDBManager implements Serializable {
   }
 
   private void saveCKey(long hourPoint, List keys) {
+
+    Log.e("saveCKey", "got " + keys.size() + " keys");
     ContentValues keyCatalogRecord = new ContentValues();
     keyCatalogRecord.put("timepoint", hourPoint);
 //            Log.e("insert ckeys", contentKeyName.toUri());
@@ -318,10 +327,19 @@ public class NdnDBManager implements Serializable {
       final long hourpoint = timepoint / 1000 / 3600000 * 3600000;
       Name contentKeyName = dataProducer.createContentKey((double)timepoint/1000,
         new Producer.OnEncryptedKeys() {
+          @Override
           public void onEncryptedKeys(List keys) {
+            Log.e(TAG, "onEncryptedKeys");
             saveCKey(hourpoint, keys);
           }
-        });
+        },
+      new EncryptError.OnError() {
+        @Override
+        public void onError(EncryptError.ErrorCode errorCode, String message) {
+          Log.e(TAG, errorCode.toString() + message);
+        }
+      });
+      /*
       // fake a c-key
       if(!CKeyList.contains(contentKeyName)) {
         List<Data> keys = new ArrayList<>();
@@ -331,7 +349,7 @@ public class NdnDBManager implements Serializable {
         keys.add(fakedCkey);
         saveCKey(hourpoint, keys);
         CKeyList.add(contentKeyName);
-      }
+      }*/
       documentAsString = objectMapper.writeValueAsString(positionList);
       if(previousData == null)
 //        data.setContent(new Blob(documentAsString));

@@ -7,7 +7,10 @@ import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
 import net.named_data.jndn.Name;
+import net.named_data.jndn.NetworkNack;
 import net.named_data.jndn.OnData;
+import net.named_data.jndn.OnNetworkNack;
+import net.named_data.jndn.OnTimeout;
 import net.named_data.jndn.encoding.EncodingException;
 import net.named_data.jndn.security.*;
 import net.named_data.jndn.security.SecurityException;
@@ -19,6 +22,7 @@ import net.named_data.jndn.security.policy.SelfVerifyPolicyManager;
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 import ucla.remap.ndnfit.NDNFitCommon;
 import ucla.remap.ndnfit.ndndb.NdnDBManager;
@@ -41,6 +45,10 @@ public class NetworkDaemon {
 
     public NetworkDaemon() {
 
+    }
+
+    public static Face getFace() {
+      return face;
     }
 
     public static void startNetworkService(ScheduledExecutorService scheduler) {
@@ -86,7 +94,33 @@ public class NetworkDaemon {
                                 }
                             }, new RequestDataTimeOut());
                         Log.e("register", registerInterest.getName().toUri());
+/*
+                        OnData onKey = new OnData() {
+                            public void onData(Interest interest, final Data data) {
+                                try {
+                                    System.out.println("receive data: " + data.getName());
+                                } catch (Exception ex) {
+                                }
+                            }
+                        };
 
+                        OnTimeout onTimeout = new OnTimeout() {
+                            public void onTimeout(Interest interest) {
+                                try {
+                                    System.out.println("time out: " + interest.getName());
+                                } catch (Exception ex) {
+                                }
+                            }
+                        };
+
+                        OnNetworkNack onNetworkNack = new OnNetworkNack() {
+                            public void onNetworkNack(Interest interest, NetworkNack networkNack) {
+                                System.out.println("network nack: " + interest.getName());
+                            }
+                        };
+
+                        face.expressInterest(new Interest(new Name("/org/openmhealth/haitao/READ/fitness/E-KEY")), onKey, onTimeout, onNetworkNack);
+*/
                         while (true) {
                             face.processEvents();
                             Thread.sleep(5);

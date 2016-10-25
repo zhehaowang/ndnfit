@@ -216,7 +216,7 @@ public class MainActivity extends ActionBarActivity {
         mDBManager.init(this);
 
         mNdnDBmanager = NdnDBManager.getInstance();
-        mNdnDBmanager.init(this);
+        mNdnDBmanager.init(this, NetworkDaemon.getFace());
 
         //TODO: temporarily comment this part to simplify the debug process, need to get it back
 //        Cursor idRecords = mDBManager.getIdRecord();
