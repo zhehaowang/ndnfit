@@ -6,6 +6,7 @@ import android.util.Log;
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
+import net.named_data.jndn.Link;
 import net.named_data.jndn.Name;
 import net.named_data.jndn.NetworkNack;
 import net.named_data.jndn.OnData;
@@ -73,6 +74,9 @@ public class NetworkDaemon {
             final ReceiveInterest receiveInterest = new ReceiveInterest(face);
             final RegisterFailure registerFailure = new RegisterFailure();
 
+          NetworkLink networkLink = NetworkLink.getInstance();
+          final Link link = networkLink.initLink(keyChain, face);
+
             AsyncTask<Void, Void, Void> networkTask = new AsyncTask<Void, Void, Void>() {
                 @Override
                 protected Void doInBackground(Void... voids) {
@@ -84,7 +88,8 @@ public class NetworkDaemon {
                                 registerFailure);
 //                        face.registerPrefix(NDNFitCommon.UPDATE_INFO_PREFIX, receiveInterest,
 //                                registerFailure);
-                        Name registerName = new Name(NDNFitCommon.REGISTER_PREFIX).append(NDNFitCommon.USER_PREFIX);
+                        Name registerName = new Name(NDNFitCommon.REGISTER_PREFIX)
+                          .append(NDNFitCommon.USER_PREFIX).append(link.wireEncode());
                         Interest registerInterest = new Interest();
                         registerInterest.setName(registerName);
                             face.expressInterest(registerInterest, new OnData() {
