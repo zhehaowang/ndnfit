@@ -6,18 +6,12 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
-import net.named_data.jndn.Interest;
 import net.named_data.jndn.Name;
-import net.named_data.jndn.NetworkNack;
-import net.named_data.jndn.OnData;
-import net.named_data.jndn.OnNetworkNack;
-import net.named_data.jndn.OnTimeout;
 import net.named_data.jndn.encoding.EncodingException;
 import net.named_data.jndn.encrypt.AndroidSqlite3ProducerDb;
 import net.named_data.jndn.encrypt.EncryptError;
@@ -474,7 +468,13 @@ public class NdnDBManager implements Serializable {
 
 
     try {
-      Cursor cursor = mDB.query(POINT_TABLE, columns, "timepoint = " + (long) Schedule.fromIsoString(name.get(-1).toEscapedString()) * 1000, null, null, null, null);
+      Cursor cursor;
+      if(name.compare(NDNFitCommon.DATA_PREFIX) == 0) {
+        cursor = mDB.query(POINT_TABLE, columns, null, null, null, null, "timepoint ASC");
+      }
+      else {
+        cursor = mDB.query(POINT_TABLE, columns, "timepoint = " + (long) Schedule.fromIsoString(name.get(7).toEscapedString()) * 1000, null, null, null, null);
+      }
       if (cursor.moveToNext()) {
         byte[] raw = cursor.getBlob(1);
         Data data = new Data();
@@ -579,7 +579,7 @@ public class NdnDBManager implements Serializable {
         cursor = mDB.query(CATALOG_TABLE, columns, null, null, null, null, "timepoint ASC");
       }
       else{
-        cursor = mDB.query(CATALOG_TABLE, columns, "timepoint = " + (long) Schedule.fromIsoString(name.get(-1).toEscapedString()) * 1000,
+        cursor = mDB.query(CATALOG_TABLE, columns, "timepoint = " + (long) Schedule.fromIsoString(name.get(8).toEscapedString()) * 1000,
           null, null, null, null);
       }
       if (cursor.moveToNext()) {
@@ -599,7 +599,12 @@ public class NdnDBManager implements Serializable {
       return null;
     String[] columns = {"timepoint", "data", "uploaded"};
     try {
-      Cursor cursor = mDB.query(CKEY_CATALOG_TABLE, columns, "timepoint = " + (long) Schedule.fromIsoString(name.get(-1).toEscapedString()), null, null, null, null);
+      Cursor cursor;
+      if(name.compare(NDNFitCommon.CKEY_CATALOG_PREFIX) == 0) {
+        cursor = mDB.query(CKEY_CATALOG_TABLE, columns, null, null, null, null, "timepoint ASC");
+      } else {
+        cursor = mDB.query(CKEY_CATALOG_TABLE, columns, "timepoint = " + (long) Schedule.fromIsoString(name.get(9).toEscapedString()), null, null, null, null);
+      }
       if (cursor.moveToNext()) {
         byte[] raw = cursor.getBlob(1);
         Data data = new Data();
@@ -686,7 +691,7 @@ public class NdnDBManager implements Serializable {
     try {
       ContentValues record = new ContentValues();
       record.put("uploaded", 1);
-      mDB.update(CATALOG_TABLE, record, "timepoint = " + (long) Schedule.fromIsoString(name.get(-1).toEscapedString()) * 1000 + " AND version = 1", null);
+      mDB.update(CATALOG_TABLE, record, "timepoint = " + (long) Schedule.fromIsoString(name.get(8).toEscapedString()) * 1000 + " AND version = 1", null);
 //            mDB.delete(CATALOG_TABLE, "timepoint = " + name.get(-2).toTimestamp() + " AND version = " + name.get(-1).toVersion(), null);
     } catch (EncodingException e) {
       e.printStackTrace();
@@ -699,7 +704,7 @@ public class NdnDBManager implements Serializable {
     try {
       ContentValues record = new ContentValues();
       record.put("uploaded", 1);
-      mDB.update(CKEY_CATALOG_TABLE, record, "timepoint = " + (long) Schedule.fromIsoString(name.get(-1).toEscapedString()), null);
+      mDB.update(CKEY_CATALOG_TABLE, record, "timepoint = " + (long) Schedule.fromIsoString(name.get(9).toEscapedString()), null);
     } catch (EncodingException e) {
       e.printStackTrace();
     }

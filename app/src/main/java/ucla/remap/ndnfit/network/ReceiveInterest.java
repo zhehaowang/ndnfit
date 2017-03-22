@@ -10,7 +10,6 @@ import net.named_data.jndn.Name;
 import net.named_data.jndn.OnData;
 import net.named_data.jndn.OnInterestCallback;
 import net.named_data.jndn.OnTimeout;
-import net.named_data.jndn.util.Blob;
 
 import java.io.IOException;
 
@@ -37,8 +36,13 @@ public class ReceiveInterest implements OnInterestCallback {
     public void onInterest(Name prefix, Interest interest, Face face, long interestFilterId, InterestFilter filter) {
         Log.d(TAG, "<< I: " + interest.toUri());
         try {
+            if(interest.getExclude().size() != 0) {
+                Log.d(TAG, "excluder is not null");
+                return;
+            }
             Name dataName = interest.getName();
             Data data = ndnDBManager.readData(dataName);
+            Log.d(TAG, " get D :" + (data == null ? "no data" : data.toString()));
             if (data != null) {
                 face.putData(data);
                 Log.d(TAG, ">> D: " + data.getContent().toString());
