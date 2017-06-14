@@ -7,12 +7,10 @@ import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
 import net.named_data.jndn.Name;
-import net.named_data.jndn.NetworkNack;
 import net.named_data.jndn.OnData;
-import net.named_data.jndn.OnNetworkNack;
-import net.named_data.jndn.OnTimeout;
 import net.named_data.jndn.encoding.EncodingException;
-import net.named_data.jndn.security.*;
+import net.named_data.jndn.encrypt.Schedule;
+import net.named_data.jndn.security.KeyChain;
 import net.named_data.jndn.security.SecurityException;
 import net.named_data.jndn.security.identity.IdentityManager;
 import net.named_data.jndn.security.identity.MemoryIdentityStorage;
@@ -22,7 +20,6 @@ import net.named_data.jndn.security.policy.SelfVerifyPolicyManager;
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 import ucla.remap.ndnfit.NDNFitCommon;
 import ucla.remap.ndnfit.ndndb.NdnDBManager;
@@ -32,16 +29,7 @@ import ucla.remap.ndnfit.ndndb.NdnDBManager;
  */
 public class NetworkDaemon {
     private static final String TAG = "NetworkDaemon";
-    private static NdnDBManager mNdnDBManager;
     private static final Face face = new Face();
-//    /////////////////////////////////
-//    private static Name repoCommandPrefix = new Name("/example/repo/1");
-//    private static Name repoDataPrefix = new Name("/example/data/1");
-//    private static Name fetchPrefix = new Name(repoDataPrefix).append("testinsert");
-//    private static long startBlockId = 0;
-//    private static long endBlockId = 1;
-//    //////////////////////////////////
-
 
     public NetworkDaemon() {
 
@@ -84,43 +72,18 @@ public class NetworkDaemon {
                                 registerFailure);
 //                        face.registerPrefix(NDNFitCommon.UPDATE_INFO_PREFIX, receiveInterest,
 //                                registerFailure);
-                        Name registerName = new Name(NDNFitCommon.REGISTER_PREFIX).append(NDNFitCommon.USER_PREFIX);
-                        Interest registerInterest = new Interest();
-                        registerInterest.setName(registerName);
+                        if(NdnDBManager.getInstance().getLastCatalogTimestamp() != 0) {
+                            Name registerName = new Name(NDNFitCommon.REGISTER_PREFIX).append(NDNFitCommon.USER_PREFIX);
+                            Interest registerInterest = new Interest();
+                            registerInterest.setName(registerName);
                             face.expressInterest(registerInterest, new OnData() {
                                 @Override
                                 public void onData(Interest interest, Data data) {
-
                                 }
                             }, new RequestDataTimeOut());
-                        Log.e("register", registerInterest.getName().toUri());
-/*
-                        OnData onKey = new OnData() {
-                            public void onData(Interest interest, final Data data) {
-                                try {
-                                    System.out.println("receive data: " + data.getName());
-                                } catch (Exception ex) {
-                                }
-                            }
-                        };
+                            Log.e("register", registerInterest.getName().toUri());
+                        }
 
-                        OnTimeout onTimeout = new OnTimeout() {
-                            public void onTimeout(Interest interest) {
-                                try {
-                                    System.out.println("time out: " + interest.getName());
-                                } catch (Exception ex) {
-                                }
-                            }
-                        };
-
-                        OnNetworkNack onNetworkNack = new OnNetworkNack() {
-                            public void onNetworkNack(Interest interest, NetworkNack networkNack) {
-                                System.out.println("network nack: " + interest.getName());
-                            }
-                        };
-
-                        face.expressInterest(new Interest(new Name("/org/openmhealth/haitao/READ/fitness/E-KEY")), onKey, onTimeout, onNetworkNack);
-*/
                         while (true) {
                             face.processEvents();
                             Thread.sleep(5);
@@ -145,17 +108,27 @@ public class NetworkDaemon {
         }
     }
 
-    public static void insertIntoRepo(ScheduledExecutorService scheduler) {
-        DataUploader dataUploader = new DataUploader();
-        dataUploader.setFace(face);
-        scheduler.scheduleAtFixedRate(dataUploader, 60*1000000,
-                NDNFitCommon.FETCH_CONFIRMATION_TIME_INTERVAL, TimeUnit.MICROSECONDS);
-    }
-
     public static void checkInsertionStatus(ScheduledExecutorService scheduler) {
         InsertionStatusChecker insertionStatusChecker = new InsertionStatusChecker();
         insertionStatusChecker.setFace(face);
         scheduler.scheduleAtFixedRate(insertionStatusChecker, 60 * 1000000,
                 NDNFitCommon.FETCH_CONFIRMATION_TIME_INTERVAL, TimeUnit.MICROSECONDS);
+    }
+
+    public static void registerOnDsu(long firstTimestamp) {
+        Name registerName = new Name(NDNFitCommon.REGISTER_PREFIX)
+          .append(NDNFitCommon.USER_PREFIX).append(Schedule.toIsoString(firstTimestamp / 1000));
+        Interest registerInterest = new Interest();
+        registerInterest.setName(registerName);
+        try {
+            face.expressInterest(registerInterest, new OnData() {
+                @Override
+                public void onData(Interest interest, Data data) {
+                }
+            }, new RequestDataTimeOut());
+            Log.e("register", registerInterest.getName().toUri());
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
     }
 }

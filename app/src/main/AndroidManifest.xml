@@ -9,6 +9,8 @@
     <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <uses-feature android:name="android.hardware.location.gps" />
+
     <uses-feature
         android:glEsVersion="0x00020000"
         android:required="true" />
@@ -32,23 +34,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".TrackActivity"
-            android:label="@string/title_activity_track" />
-        <activity
-            android:name=".TurnActivity"
-            android:label="@string/title_activity_turn" />
-        <provider
-            android:authorities="edu.ucal.remap.ndnfit"
-            android:multiprocess="true"
-            android:exported = "true"
-            android:name="ucla.remap.ndnfit.db.TrackProvider" />
         <!-- ATTENTION: This was auto-generated to add Google Play services to your project for
              App Indexing.  See https://g.co/AppIndexing/AndroidStudio for more information. -->
-        <meta-data
-            android:name="com.google.android.gms.version"
-            android:value="@integer/google_play_services_version" />
-        <uses-library android:name="com.google.android.maps" />
 
     </application>
 

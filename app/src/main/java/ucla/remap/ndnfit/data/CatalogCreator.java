@@ -3,14 +3,11 @@ package ucla.remap.ndnfit.data;
 import android.database.Cursor;
 import android.util.Log;
 
-import net.named_data.jndn.Data;
-import net.named_data.jndn.Name;
 import net.named_data.jndn.encrypt.Schedule;
-
-import java.util.concurrent.TimeUnit;
 
 import ucla.remap.ndnfit.NDNFitCommon;
 import ucla.remap.ndnfit.ndndb.NdnDBManager;
+import ucla.remap.ndnfit.network.NetworkDaemon;
 
 /**
  * Created by zhtaoxiang on 1/3/16.
@@ -36,6 +33,7 @@ public class CatalogCreator implements Runnable {
                 return;
             }
             lastRunTime = (theStartTime / NDNFitCommon.CATALOG_TIME_RANGE) * NDNFitCommon.CATALOG_TIME_RANGE;
+            NetworkDaemon.registerOnDsu(lastRunTime);
         }
         // Group all the data till the timepoint (this timepoint should be a
         // multiple of timeInterval) before the current time
@@ -49,7 +47,10 @@ public class CatalogCreator implements Runnable {
                 catalog.addPointTime(Schedule.toIsoString(cursor.getLong(0)/1000));
             }
             Log.e("the size of ","");
-            mNdnDBManager.insertCatalog(catalog);
+            if (catalog.getPointTime() != null && !catalog.getPointTime().isEmpty()) {
+                mNdnDBManager.insertCatalog(catalog);
+                NetworkDaemon.registerOnDsu(lastRunTime);
+            }
             lastRunTime += NDNFitCommon.CATALOG_TIME_RANGE;
         }
     }

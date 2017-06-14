@@ -32,8 +32,6 @@ public class NDNFitCommon {
 
     public static final Name REGISTER_PREFIX = new Name("/ndn/edu/ucla/remap/ndnfit/dsu/register");
 
-    public static final Name REPO_COMMAND_PREFIX = new Name("/ndn/edu/ucla/remap/ndnfit/repo");;
-
     public static final long CATALOG_TIME_RANGE = TimeUnit.MINUTES.toMicros(2);
 
     public static final long FETCH_CONFIRMATION_TIME_INTERVAL = TimeUnit.MINUTES.toMicros(1);
