@@ -42,10 +42,10 @@ public class ReceiveInterest implements OnInterestCallback {
             }
             Name dataName = interest.getName();
             Data data = ndnDBManager.readData(dataName);
-            Log.d(TAG, " get D :" + (data == null ? "no data" : data.toString()));
+            Log.d(TAG, " get D :" + (data == null ? "no data" : data.getName()));
             if (data != null) {
                 face.putData(data);
-                Log.d(TAG, ">> D: " + data.getContent().toString());
+                Log.d(TAG, ">> D: " + data.getName());
 //                face.expressInterest();
             }
         } catch (IOException ex) {
