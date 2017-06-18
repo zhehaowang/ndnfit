@@ -39,16 +39,13 @@ import ucla.remap.ndnfit.NDNFitCommon;
 import ucla.remap.ndnfit.data.Catalog;
 import ucla.remap.ndnfit.data.Position;
 import ucla.remap.ndnfit.data.PositionListProcessor;
-
-/**
- * Created by zhanght on 2015/12/27.
- */
+//TODO: remove those Log.e("zhehao", ....)
 public class NdnDBManager implements Serializable {
   private SQLiteDatabase mDB;
   private Context mCtx;
   private String mAppID;
-  private Name mAppCertificateName;
-  private KeyChain mKeyChain;
+  public static Name mAppCertificateName;
+  public static KeyChain mKeyChain;
   private Producer dataProducer;
   private Face face;
   private String databaseFilePath;
@@ -57,9 +54,6 @@ public class NdnDBManager implements Serializable {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
 //    private final ElementReader elementReader;
-
-
-
   private static final String DB_NAME = "ndndb";
   private static final String TAG = "NdnDBManager";
   private static final String POINT_TABLE = "point_table";
@@ -82,8 +76,6 @@ public class NdnDBManager implements Serializable {
         new IdentityManager(identityStorage, privateKeyStorage),
         new SelfVerifyPolicyManager(identityStorage));
       /*mKeyChain.setFace(face);
-
-
       Name identityName = NDNFitCommon.USER_PREFIX;
       Name keyName = mKeyChain.generateRSAKeyPairAsDefault(identityName);
       Name certificateName = keyName.getSubName(0, keyName.size() - 1)
@@ -111,7 +103,7 @@ public class NdnDBManager implements Serializable {
   }
 
   public void setAppID(String appID, Name certName) {
-    Log.e(TAG, "setAppId is called");
+    Log.d(TAG, "setAppId is called");
     mAppID = appID;
     mAppCertificateName = new Name(certName);
 
@@ -253,10 +245,9 @@ public class NdnDBManager implements Serializable {
 
   private void saveCKey(long hourPoint, List keys) {
 
-    Log.e("saveCKey", "got " + keys.size() + " keys");
+    Log.d("saveCKey", "got " + keys.size() + " keys");
     ContentValues keyCatalogRecord = new ContentValues();
     keyCatalogRecord.put("timepoint", hourPoint);
-//            Log.e("insert ckeys", contentKeyName.toUri());
     List<String> keyNameList = new ArrayList<>();
     for (Object key: keys) {
       keyNameList.add(((Data) key).getName().toUri());
@@ -306,13 +297,17 @@ public class NdnDBManager implements Serializable {
     }
   }
 
+  /**
+   * Given a list of positions, this function creates data and saves it into database
+   * @param positionList
+   * @param timepoint
+   */
   public void recordPoints(List<Position> positionList, long timepoint) {
     Log.d(TAG, "recordPoints called, time: " + System.currentTimeMillis());
     Data previousData = getPoint(timepoint);
     ContentValues record = new ContentValues();
 //    Name name = new Name(NDNFitCommon.DATA_PREFIX).appendTimestamp(timepoint);
     Data data = new Data();
-
 //    data.setName(name);
     String documentAsString = null;
     try {
@@ -323,7 +318,7 @@ public class NdnDBManager implements Serializable {
         new Producer.OnEncryptedKeys() {
           @Override
           public void onEncryptedKeys(List keys) {
-            Log.e(TAG, "onEncryptedKeys");
+            Log.d(TAG, "onEncryptedKeys");
             saveCKey(hourpoint, keys);
           }
         },
@@ -334,7 +329,7 @@ public class NdnDBManager implements Serializable {
         }
       });
       /*
-      // fake a c-key
+      // fake a c-key, for debug purpose
       if(!CKeyList.contains(contentKeyName)) {
         List<Data> keys = new ArrayList<>();
         Data fakedCkey = new Data();
@@ -365,8 +360,8 @@ public class NdnDBManager implements Serializable {
         }
       }
 
-      Log.e("insert data point", data.getName().toUri());
-      Log.e("timestamp", "" + timepoint);
+      Log.d("insert data point", data.getName().toUri());
+      Log.d("timestamp", "" + timepoint);
       record.put("timepoint", timepoint);
       ByteBuffer original = data.wireEncode().buf();
       ByteBuffer clone = ByteBuffer.allocate(original.capacity());
@@ -398,7 +393,7 @@ public class NdnDBManager implements Serializable {
       Name name = new Name(NDNFitCommon.DATA_PREFIX).appendTimestamp(oneList.get(0).getTimeStamp());
       Data data = new Data();
       data.setName(name);
-      Log.e("insert data point", name.toUri());
+      Log.d("insert data point", name.toUri());
       String documentAsString = null;
       try {
         documentAsString = objectMapper.writeValueAsString(oneList);
@@ -531,8 +526,8 @@ public class NdnDBManager implements Serializable {
     Data data = new Data();
     Name name = new Name(NDNFitCommon.CATALOG_PREFIX).append(Schedule.toIsoString(catalog.getCatalogTimePoint() / 1000));
     data.setName(name);
-    Log.e("insert catalog", name.toUri());
-    Log.e("timestamp", "" + catalog.getCatalogTimePoint());
+    Log.d("insert catalog", name.toUri());
+    Log.d("timestamp", "" + catalog.getCatalogTimePoint());
     String documentAsString = null;
     try {
       documentAsString = objectMapper.writeValueAsString(catalog.getPointTime());

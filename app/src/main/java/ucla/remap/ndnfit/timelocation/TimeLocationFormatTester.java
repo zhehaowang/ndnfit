@@ -10,35 +10,32 @@ import com.github.fge.jsonschema.main.JsonSchemaFactory;
 import java.io.File;
 import java.io.IOException;
 
-/**
- * Created by zhanght on 2015/12/23.
- */
 public class TimeLocationFormatTester {
-    private static final JsonSchemaFactory jsonSchemaFactory = JsonSchemaFactory.byDefault();
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-    File schemaFile = new File("./src/main/res/raw/timelocationlist.json");
-    JsonSchema jsonSchema;
+  private static final JsonSchemaFactory jsonSchemaFactory = JsonSchemaFactory.byDefault();
+  private static final ObjectMapper objectMapper = new ObjectMapper();
+  File schemaFile = new File("./src/main/res/raw/timelocationlist.json");
+  JsonSchema jsonSchema;
 
-    public TimeLocationFormatTester() {
-        try {
-            jsonSchema = jsonSchemaFactory.getJsonSchema(schemaFile.toURI().toString());
-        } catch(ProcessingException e) {
-            e.printStackTrace();
-        }
+  public TimeLocationFormatTester() {
+    try {
+      jsonSchema = jsonSchemaFactory.getJsonSchema(schemaFile.toURI().toString());
+    } catch (ProcessingException e) {
+      e.printStackTrace();
     }
+  }
 
-    public boolean isValid(TimeLocationList data) {
-        try {
-            String documentAsString = objectMapper.writeValueAsString(data.getItems());
-            JsonNode documentNode = objectMapper.readTree(documentAsString);
-            ProcessingReport report = jsonSchema.validate(documentNode);
-            return report.isSuccess();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        } catch (ProcessingException e) {
-            e.printStackTrace();
-            return false;
-        }
+  public boolean isValid(TimeLocationList data) {
+    try {
+      String documentAsString = objectMapper.writeValueAsString(data.getItems());
+      JsonNode documentNode = objectMapper.readTree(documentAsString);
+      ProcessingReport report = jsonSchema.validate(documentNode);
+      return report.isSuccess();
+    } catch (IOException e) {
+      e.printStackTrace();
+      return false;
+    } catch (ProcessingException e) {
+      e.printStackTrace();
+      return false;
     }
+  }
 }

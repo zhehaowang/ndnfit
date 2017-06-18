@@ -8,23 +8,20 @@ import net.named_data.jndn.OnData;
 
 import ucla.remap.ndnfit.ndndb.NdnDBManager;
 
-/**
- * Created by zhtaoxiang on 1/4/16.
- */
 public class ReceiveData implements OnData {
-    private static final String TAG = "ReceiveData";
+  private static final String TAG = "ReceiveData";
 
-    public ReceiveData() {
-        ndnDBManager = NdnDBManager.getInstance();
-    }
+  public ReceiveData() {
+    ndnDBManager = NdnDBManager.getInstance();
+  }
 
-    @Override
-    public void onData(Interest interest, Data data) {
-        Log.d(TAG, "<< D: " + data.getName().toUri());
-        // TODO:Delete the data stored in database
+  @Override
+  public void onData(Interest interest, Data data) {
+    Log.d(TAG, "<< D: " + data.getName().toUri());
+    // TODO:Delete the data stored in database
 
-        //
-    }
+    //
+  }
 
-    private NdnDBManager ndnDBManager;
+  private NdnDBManager ndnDBManager;
 }
