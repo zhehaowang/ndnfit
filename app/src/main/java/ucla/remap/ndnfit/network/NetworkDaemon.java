@@ -3,6 +3,8 @@ package ucla.remap.ndnfit.network;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import net.named_data.jndn.ControlParameters;
+import net.named_data.jndn.ControlResponse;
 import net.named_data.jndn.Data;
 import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
@@ -71,33 +73,28 @@ public class NetworkDaemon {
               registerFailure);
 //                        face.registerPrefix(NDNFitCommon.UPDATE_INFO_PREFIX, receiveInterest,
 //                                registerFailure);
-            if (NdnDBManager.getInstance().getLastCatalogTimestamp() != 0) {
-              Name registerName = new Name(NDNFitCommon.REGISTER_PREFIX).append(NDNFitCommon.USER_PREFIX);
-              Interest registerInterest = new Interest();
-              registerInterest.setName(registerName);
-              face.expressInterest(registerInterest, new OnData() {
-                @Override
-                public void onData(Interest interest, Data data) {
-                }
-              }, new RequestDataTimeOut());
-              Log.d("register", registerInterest.getName().toUri());
-            }
+//            if (NdnDBManager.getInstance().getLastCatalogTimestamp() != 0) {
+//              Name registerName = new Name(NDNFitCommon.REGISTER_PREFIX).append(NDNFitCommon.USER_PREFIX);
+//              Interest registerInterest = new Interest();
+//              registerInterest.setName(registerName);
+//              face.expressInterest(registerInterest, new OnData() {
+//                @Override
+//                public void onData(Interest interest, Data data) {
+//                }
+//              }, new RequestDataTimeOut());
+//              Log.d("register", registerInterest.getName().toUri());
+//            }
 
-            //TODO: this function should not be invoked only once
-            //Whenever network connectivity changes, this function needs to be invoked.
+            //TODO: these two functions should not be invoked only once
+            //Whenever network connectivity changes, these two functions needs to be invoked.
             discoverLocalHubPrefix();
+            registerRemotePrefix();
 
             while (true) {
               face.processEvents();
               Thread.sleep(5);
             }
-          } catch (IOException e) {
-            e.printStackTrace();
-          } catch (SecurityException e) {
-            e.printStackTrace();
-          } catch (InterruptedException e) {
-            e.printStackTrace();
-          } catch (EncodingException e) {
+          } catch (IOException | SecurityException | InterruptedException | EncodingException e) {
             e.printStackTrace();
           }
 
@@ -149,7 +146,10 @@ public class NetworkDaemon {
     }
   }
 
-  public static void discoverLocalHubPrefix() {
+  /**
+   * fetch remote NFD's routable prefix, used for link object
+   */
+  private static void discoverLocalHubPrefix() {
     Name discoverLocalHubPrefixName = new Name(NDNFitCommon.DISCOVER_LOCAL_HUB_PREFIX);
     Interest discoverLocalHubPrefixInterest = new Interest();
     discoverLocalHubPrefixInterest.setName(discoverLocalHubPrefixName);
@@ -178,6 +178,39 @@ public class NetworkDaemon {
       }, new RequestDataTimeOut());
     } catch (IOException ioe) {
       ioe.printStackTrace();
+    }
+  }
+
+  /**
+   * register a back prefix at the remote NFD
+   */
+  private static void registerRemotePrefix() {
+    Name remotePrefixRegisterPrefix = new Name("/localhop/nfd/rib/register");
+    ControlParameters params = new ControlParameters();
+    params.setName(NDNFitCommon.USER_PREFIX);
+    remotePrefixRegisterPrefix.append(params.wireEncode());
+    Interest remotePrefixRegisterInterest = new Interest(remotePrefixRegisterPrefix);
+    Log.d("registerRemotePrefix", "try");
+    try {
+      NdnDBManager.mKeyChain.sign(remotePrefixRegisterInterest);
+      face.expressInterest(remotePrefixRegisterInterest, new OnData() {
+        @Override
+        public void onData(Interest interest, Data data) {
+          ControlResponse resp = new ControlResponse();
+          try {
+            resp.wireDecode(data.getContent());
+            if (resp.getStatusCode() == 200) {
+              Log.d("registerRemotePrefix", "succeeded");
+            } else {
+              Log.d("registerRemotePrefix", "failed");
+            }
+          } catch (EncodingException e) {
+            e.printStackTrace();
+          }
+        }
+      }, new RequestDataTimeOut());
+    } catch (IOException | SecurityException e) {
+      e.printStackTrace();
     }
   }
 
