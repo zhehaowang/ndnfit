@@ -22,9 +22,9 @@ namespace ndn {
         
         static const int INTEREST_TIME_OUT_SECONDS = 60;
         
-        static const std::string CONFIRM_PREFIX = "/ndn/edu/ucla/remap/ndnfit/dsu/confirm/org/openmhealth";
-        static const std::string REGISTER_PREFIX = "/ndn/edu/ucla/remap/ndnfit/dsu/register/org/openmhealth";
-        static const std::string CONFIRM_PREFIX_FOR_REPLY = "/ndn/edu/ucla/remap/ndnfit/dsu/confirm";
+        static const std::string CONFIRM_PREFIX = "/org/openmhealth/dsu/confirm/org/openmhealth";
+        static const std::string REGISTER_PREFIX = "/org/openmhealth/dsu/register/org/openmhealth";
+        static const std::string CONFIRM_PREFIX_FOR_REPLY = "/org/openmhealth/dsu/confirm";
         
         class DSUsync : noncopyable
         {
