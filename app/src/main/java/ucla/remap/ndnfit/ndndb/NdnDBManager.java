@@ -442,8 +442,9 @@ public class NdnDBManager implements Serializable {
    */
   public Data getPoint(long timepoint) {
     String[] columns = {"timepoint", "data", "uploaded"};
+    Cursor cursor = null;
     try {
-      Cursor cursor = mDB.query(POINT_TABLE, columns, "timepoint = " + timepoint, null, null, null, null);
+      cursor = mDB.query(POINT_TABLE, columns, "timepoint = " + timepoint, null, null, null, null);
       if (cursor.moveToNext()) {
         byte[] raw = cursor.getBlob(1);
         Data data = new Data();
@@ -452,6 +453,10 @@ public class NdnDBManager implements Serializable {
       }
     } catch (EncodingException e) {
       e.printStackTrace();
+    } finally {
+      if(cursor!=null) {
+        cursor.close();
+      }
     }
     return null;
   }
@@ -461,9 +466,8 @@ public class NdnDBManager implements Serializable {
       return null;
     String[] columns = {"timepoint", "data", "uploaded"};
 
-
+    Cursor cursor = null;
     try {
-      Cursor cursor;
       if(name.compare(NDNFitCommon.DATA_PREFIX) == 0) {
         cursor = mDB.query(POINT_TABLE, columns, null, null, null, null, "timepoint ASC");
       }
@@ -478,6 +482,10 @@ public class NdnDBManager implements Serializable {
       }
     } catch (EncodingException e) {
       e.printStackTrace();
+    } finally {
+      if(cursor != null) {
+        cursor.close();
+      }
     }
     return null;
   }
@@ -495,8 +503,11 @@ public class NdnDBManager implements Serializable {
     String[] columns = {"timepoint", "version", "data", "uploaded"};
     Cursor cursor = mDB.query(CATALOG_TABLE, columns, null, null, null, null, "timepoint DESC");
     if (cursor.moveToNext()) {
-      return cursor.getLong(0);
+      long result = cursor.getLong(0);
+      cursor.close();
+      return result;
     }
+    cursor.close();
     return 0;
   }
 
@@ -567,9 +578,9 @@ public class NdnDBManager implements Serializable {
       return null;
     String[] columns = {"timepoint", "version", "data", "uploaded"};
 
-
+    Cursor cursor = null;
     try {
-      Cursor cursor;
+
       if(name.compare(NDNFitCommon.CATALOG_PREFIX) == 0) {
         cursor = mDB.query(CATALOG_TABLE, columns, null, null, null, null, "timepoint ASC");
       }
@@ -585,6 +596,10 @@ public class NdnDBManager implements Serializable {
       }
     } catch (EncodingException e) {
       e.printStackTrace();
+    } finally {
+      if(cursor != null) {
+        cursor.close();
+      }
     }
     return null;
   }
@@ -593,8 +608,8 @@ public class NdnDBManager implements Serializable {
     if (!NDNFitCommon.CKEY_CATALOG_PREFIX.match(name))
       return null;
     String[] columns = {"timepoint", "data", "uploaded"};
+    Cursor cursor = null;
     try {
-      Cursor cursor;
       if(name.compare(NDNFitCommon.CKEY_CATALOG_PREFIX) == 0) {
         cursor = mDB.query(CKEY_CATALOG_TABLE, columns, null, null, null, null, "timepoint ASC");
       } else {
@@ -608,6 +623,10 @@ public class NdnDBManager implements Serializable {
       }
     } catch (EncodingException e) {
       e.printStackTrace();
+    } finally {
+      if(cursor!=null) {
+        cursor.close();
+      }
     }
     return null;
   }
@@ -616,8 +635,9 @@ public class NdnDBManager implements Serializable {
     if (!NDNFitCommon.CKEY_PREFIX.match(name))
       return null;
     String[] columns = {"name", "data", "uploaded"};
+    Cursor cursor = null;
     try {
-      Cursor cursor = mDB.query(ENCRYPTED_CKEY_TABLE, columns, "name = \"" + name.toUri() + "\"", null, null, null, null);
+      cursor = mDB.query(ENCRYPTED_CKEY_TABLE, columns, "name = \"" + name.toUri() + "\"", null, null, null, null);
       if (cursor.moveToNext()) {
         byte[] raw = cursor.getBlob(1);
         Data data = new Data();
@@ -626,6 +646,10 @@ public class NdnDBManager implements Serializable {
       }
     } catch (EncodingException e) {
       e.printStackTrace();
+    } finally {
+      if (cursor != null) {
+        cursor.close();
+      }
     }
     return null;
   }

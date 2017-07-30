@@ -71,19 +71,6 @@ public class NetworkDaemon {
 
             face.registerPrefix(NDNFitCommon.CATALOG_PREFIX, receiveInterest,
               registerFailure);
-//                        face.registerPrefix(NDNFitCommon.UPDATE_INFO_PREFIX, receiveInterest,
-//                                registerFailure);
-//            if (NdnDBManager.getInstance().getLastCatalogTimestamp() != 0) {
-//              Name registerName = new Name(NDNFitCommon.REGISTER_PREFIX).append(NDNFitCommon.USER_PREFIX);
-//              Interest registerInterest = new Interest();
-//              registerInterest.setName(registerName);
-//              face.expressInterest(registerInterest, new OnData() {
-//                @Override
-//                public void onData(Interest interest, Data data) {
-//                }
-//              }, new RequestDataTimeOut());
-//              Log.d("register", registerInterest.getName().toUri());
-//            }
 
             //TODO: these two functions should not be invoked only once
             //Whenever network connectivity changes, these two functions needs to be invoked.
@@ -140,7 +127,7 @@ public class NetworkDaemon {
         public void onData(Interest interest, Data data) {
         }
       }, new RequestDataTimeOut());
-      Log.e("register", registerInterest.getName().toUri());
+      Log.d(TAG, "register" + registerInterest.getName().toUri());
     } catch (IOException ioe) {
       ioe.printStackTrace();
     }
@@ -169,7 +156,6 @@ public class NetworkDaemon {
             } catch (SecurityException e) {
               e.printStackTrace();
             }
-            // TODO: remote-prfix-registration
 
           } catch (EncodingException e) {
             e.printStackTrace();
@@ -213,5 +199,4 @@ public class NetworkDaemon {
       e.printStackTrace();
     }
   }
-
 }

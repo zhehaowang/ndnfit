@@ -31,7 +31,7 @@ public class InsertionStatusChecker implements Runnable {
   }
 
   private void checkInsertionStatus() {
-
+    Log.d(TAG, "checkInsertionStatus is called, time: " + System.currentTimeMillis());
     try {
       Cursor pointCursor = ndnDBManager.getAllUnuploadedPoints();
       final List<Name> pointsConfirmation = new ArrayList<>();
