@@ -151,11 +151,11 @@ public class NetworkDaemon {
             NDNFitCommon.LINK_OBJECT = new Link();
             NDNFitCommon.LINK_OBJECT.setName(NDNFitCommon.USER_PREFIX);
             NDNFitCommon.LINK_OBJECT.addDelegation(10, NDNFitCommon.LOCAL_HUB_PREFIX);
-            try {
-              NdnDBManager.mKeyChain.sign(NDNFitCommon.LINK_OBJECT, NdnDBManager.mAppCertificateName);
-            } catch (SecurityException e) {
-              e.printStackTrace();
-            }
+//            try {
+//              NdnDBManager.mKeyChain.sign(NDNFitCommon.LINK_OBJECT, NdnDBManager.mAppCertificateName);
+//            } catch (SecurityException e) {
+//              e.printStackTrace();
+//            }
 
           } catch (EncodingException e) {
             e.printStackTrace();
@@ -195,7 +195,7 @@ public class NetworkDaemon {
           }
         }
       }, new RequestDataTimeOut());
-    } catch (IOException | SecurityException e) {
+    } catch (Exception e) {
       e.printStackTrace();
     }
   }

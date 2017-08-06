@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.StrictMode;
@@ -82,17 +83,23 @@ public class MainActivity extends ActionBarActivity {
         Blob blob = new Blob(decoded);
         Data certData = new Data();
         try {
-          if (mAppId != "") {
+          if (!mAppId.isEmpty()) {
             certData.wireDecode(blob);
             IdentityCertificate certificate = new IdentityCertificate(certData);
             String signerKey = ((Sha256WithRsaSignature) certificate.getSignature()).getKeyLocator().getKeyName().toUri();
             Log.d(TAG, "Signer key name " + signerKey + "; App certificate name: " + certificate.getName().toUri());
-//                        mDBManager.insertID(mAppId, certificate.getName().toUri(), signerKey);
+            mNdnDBmanager.insertID(mAppId, certificate.getName().toUri(), signerKey);
             mAppCertificateName = new Name(certificate.getName());
-            mNdnDBmanager.setAppID(mAppId, mAppCertificateName);
             NDNFitCommon.setDataPrefix(new Name(mAppId).getPrefix(-1));
+            mNdnDBmanager.setAppID(mAppId, certificate);
+            // get network daemon running
+            // (as those functions is not used by other apps, for simplicity, service is not used, instead,
+            // use multi-threads)
+            NetworkDaemon.startNetworkService(scheduler);
+            NetworkDaemon.checkInsertionStatus(scheduler);
+            CatalogDaemon.startCreatingCatalog(scheduler);
           } else {
-            Log.e("zhehao", "mAppId empty for result of SIGN_CERT_REQUEST");
+            Log.e(TAG, "mAppId empty for result of SIGN_CERT_REQUEST");
           }
         } catch (Exception e) {
           Log.e(getResources().getString(R.string.app_name), e.getMessage());
@@ -169,18 +176,23 @@ public class MainActivity extends ActionBarActivity {
 
     //TODO: temporarily comment this part to simplify the debug process, need to get it back
     // require the user to choose a cert here because the cert is used later.
-//        Cursor idRecords = mDBManager.getIdRecord();
-//        if (idRecords.moveToNext()) {
-//            mAppId = idRecords.getString(0);
-//            mAppCertificateName = new Name(idRecords.getString(1));
-//            Log.e("zhehao", mAppId);
-//            mNdnDBmanager.setAppID(mAppId, mAppCertificateName);
-//            // omit the app name component from mAppId
-//            NDNFitCommon.setDataPrefix(new Name(mAppId).getPrefix(-1));
-//            idRecords.close();
-//        } else {
-//            requestAuthorization();
-//        }
+    Cursor idRecords = mNdnDBmanager.getIdRecord();
+    if (idRecords.moveToNext()) {
+      mAppId = idRecords.getString(0);
+      mAppCertificateName = new Name(idRecords.getString(1));
+//      // omit the app name component from mAppId
+      NDNFitCommon.setDataPrefix(new Name(mAppId).getPrefix(-1));
+      mNdnDBmanager.setAppID(mAppId, mAppCertificateName);
+      idRecords.close();
+      // get network daemon running
+      // (as those functions is not used by other apps, for simplicity, service is not used, instead,
+      // use multi-threads)
+      NetworkDaemon.startNetworkService(scheduler);
+      NetworkDaemon.checkInsertionStatus(scheduler);
+      CatalogDaemon.startCreatingCatalog(scheduler);
+    } else {
+      requestAuthorization();
+    }
 
     mGPSListener = new GPSListener(this);
 
@@ -190,14 +202,6 @@ public class MainActivity extends ActionBarActivity {
 
     // Now, tracking is not started
     mInTracking = false;
-
-    // get network daemon running
-    // (as those functions is not used by other apps, for simplicity, service is not used, instead,
-    // use multi-threads)
-    NetworkDaemon.startNetworkService(scheduler);
-    NetworkDaemon.checkInsertionStatus(scheduler);
-    CatalogDaemon.startCreatingCatalog(scheduler);
-
 
     // btnStart
     Button btnStart = (Button) findViewById(R.id.btnStart);

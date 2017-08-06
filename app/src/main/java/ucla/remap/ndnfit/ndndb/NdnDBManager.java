@@ -19,6 +19,7 @@ import net.named_data.jndn.encrypt.Producer;
 import net.named_data.jndn.encrypt.ProducerDb;
 import net.named_data.jndn.encrypt.Schedule;
 import net.named_data.jndn.security.KeyChain;
+import net.named_data.jndn.security.certificate.IdentityCertificate;
 import net.named_data.jndn.security.identity.AndroidSqlite3IdentityStorage;
 import net.named_data.jndn.security.identity.FilePrivateKeyStorage;
 import net.named_data.jndn.security.identity.IdentityManager;
@@ -61,6 +62,7 @@ public class NdnDBManager implements Serializable {
   private static final String CATALOG_TABLE = "catalog_table";
   private static final String CKEY_CATALOG_TABLE = "ckey_catalog_table";
   private static final String ENCRYPTED_CKEY_TABLE = "encrypted_ckey_table";
+  private static final String ID_TABLE = "id_table";
 
   private static NdnDBManager instance = new NdnDBManager();
 
@@ -102,12 +104,12 @@ public class NdnDBManager implements Serializable {
     createTable();
   }
 
-  public void setAppID(String appID, Name certName) {
+  public void setAppID(String appID, IdentityCertificate certificate) {
     Log.d(TAG, "setAppId is called");
     mAppID = appID;
-    mAppCertificateName = new Name(certName);
+    mAppCertificateName = new Name(certificate.getName());
 
-    if (mAppID != null && mAppID != "") {
+    if (mAppID != null && !mAppID.isEmpty()) {
       String dbPath = mCtx.getFilesDir().getAbsolutePath() + "/" + MainActivity.DB_NAME;
       String certDirPath = mCtx.getFilesDir().getAbsolutePath() + "/" + MainActivity.CERT_DIR;
 
@@ -118,6 +120,39 @@ public class NdnDBManager implements Serializable {
       // For now, the verification policy manager, and the face to fetch required cert does not matter
       // So we use SelfVerifyPolicyManager, and don't call KeyChain.setFace()
       mKeyChain = new KeyChain(identityManager, new SelfVerifyPolicyManager(identityStorage));
+      try {
+        identityManager.setDefaultIdentity(new Name(mAppID));
+        identityManager.addCertificateAsIdentityDefault(certificate);
+        Log.d(TAG, "the default certificate is set to be " + mKeyChain.getDefaultCertificateName().toString());
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+      dataProducer = new Producer(
+        NDNFitCommon.USER_PREFIX, NDNFitCommon.DATA_TYPE, face, mKeyChain, database);
+    }
+  }
+
+  public void setAppID(String appID, Name certName) {
+    Log.d(TAG, "setAppId is called");
+    mAppID = appID;
+    mAppCertificateName = new Name(certName);
+
+    if (mAppID != null && !mAppID.isEmpty()) {
+      String dbPath = mCtx.getFilesDir().getAbsolutePath() + "/" + MainActivity.DB_NAME;
+      String certDirPath = mCtx.getFilesDir().getAbsolutePath() + "/" + MainActivity.CERT_DIR;
+
+      IdentityStorage identityStorage = new AndroidSqlite3IdentityStorage(dbPath);
+      PrivateKeyStorage privateKeyStorage = new FilePrivateKeyStorage(certDirPath);
+      IdentityManager identityManager = new IdentityManager(identityStorage, privateKeyStorage);
+
+      // For now, the verification policy manager, and the face to fetch required cert does not matter
+      // So we use SelfVerifyPolicyManager, and don't call KeyChain.setFace()
+      mKeyChain = new KeyChain(identityManager, new SelfVerifyPolicyManager(identityStorage));
+      try {
+        Log.d(TAG, "the default certificate is set to be " + mKeyChain.getDefaultCertificateName().toString());
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
       dataProducer = new Producer(
         NDNFitCommon.USER_PREFIX, NDNFitCommon.DATA_TYPE, face, mKeyChain, database);
     }
@@ -197,6 +232,18 @@ public class NdnDBManager implements Serializable {
     return false;
   }
 
+  protected boolean isIdTableCreated() {
+    Cursor cursor = mDB.rawQuery("select DISTINCT tbl_name from sqlite_master where tbl_name = '" + ID_TABLE + "'", null);
+    if(cursor!=null) {
+      if(cursor.getCount()>0) {
+        cursor.close();
+        return true;
+      }
+      cursor.close();
+    }
+    return false;
+  }
+
   /**
    * Create target tables.
    */
@@ -241,6 +288,29 @@ public class NdnDBManager implements Serializable {
           + " uploaded integer DEFAULT 0);"
       );
     }
+
+    if (!isIdTableCreated()) {
+      mDB.execSQL("create table " + ID_TABLE + "("
+        + " id integer PRIMARY KEY autoincrement, "
+        + " app_id text, "
+        + " app_cert_name text, "
+        + " signer_id text)");
+    }
+  }
+
+  public Cursor getIdRecord() {
+    String[] columns = {"app_id", "app_cert_name", "signer_id"};
+    return mDB.query(ID_TABLE, columns, null, null, null, null, null);
+  }
+
+  public void insertID(String appID, String certName, String signerID) {
+    ContentValues record = new ContentValues();
+
+    record.put("app_id", appID);
+    record.put("app_cert_name", certName);
+    record.put("signer_id", signerID);
+
+    int result = (int) mDB.insert(ID_TABLE, null, record);
   }
 
   private void saveCKey(long hourPoint, List keys) {
@@ -260,14 +330,12 @@ public class NdnDBManager implements Serializable {
     } catch (JsonProcessingException e) {
       e.printStackTrace();
     }
-    if (mAppID != null && mAppID != "") {
-      try {
-        mKeyChain.sign(keyNames, mAppCertificateName);
-        Log.e("zhehao", "Signing data point with ID: " + mAppCertificateName.toUri());
-        Log.e("zhehao", "Produced: " + keyNames.getName().toUri());
-      } catch (Exception e) {
-        Log.e("zhehao", "Signing exception: " + e.getMessage());
-      }
+    try {
+      mKeyChain.sign(keyNames);
+      Log.d(TAG, "Signing data point with ID: " + mKeyChain.getDefaultCertificateName());
+      Log.d(TAG, "Produced: " + keyNames.getName().toUri());
+    } catch (Exception e) {
+      Log.e(TAG, "Signing exception: " + e.getMessage());
     }
     ByteBuffer original = keyNames.wireEncode().buf();
     ByteBuffer clone = ByteBuffer.allocate(original.capacity());
@@ -350,16 +418,6 @@ public class NdnDBManager implements Serializable {
         dataProducer.produce(data, (double)timepoint/1000, new Blob(content));
       }
 
-      if (mAppID != null && mAppID != "") {
-        try {
-          mKeyChain.sign(data, mAppCertificateName);
-          Log.e("zhehao", "Signing data point with ID: " + mAppCertificateName.toUri());
-          Log.e("zhehao", "Produced: " + data.getName().toUri());
-        } catch (Exception e) {
-          Log.e("zhehao", "Signing exception: " + e.getMessage());
-        }
-      }
-
       Log.d("insert data point", data.getName().toUri());
       Log.d("timestamp", "" + timepoint);
       record.put("timepoint", timepoint);
@@ -399,14 +457,12 @@ public class NdnDBManager implements Serializable {
         documentAsString = objectMapper.writeValueAsString(oneList);
         data.setContent(new Blob(documentAsString));
 
-        if (mAppID != null && mAppID != "") {
-          try {
-            mKeyChain.sign(data, mAppCertificateName);
-            Log.e("zhehao", "Signing data point with ID: " + mAppCertificateName.toUri());
-            Log.e("zhehao", "Produced: " + name.toUri());
-          } catch (Exception e) {
-            Log.e("zhehao", "Signing exception: " + e.getMessage());
-          }
+        try {
+          mKeyChain.sign(data);
+          Log.d(TAG, "Signing data point with ID: " + mKeyChain.getDefaultCertificateName());
+          Log.d(TAG, "Produced: " + name.toUri());
+        } catch (Exception e) {
+          Log.e(TAG, "Signing exception: " + e.getMessage());
         }
 
         record.put("timepoint", oneList.get(0).getTimeStamp());
@@ -543,14 +599,11 @@ public class NdnDBManager implements Serializable {
     try {
       documentAsString = objectMapper.writeValueAsString(catalog.getPointTime());
       data.setContent(new Blob(documentAsString));
-
-      if (mAppID != null && mAppID != "") {
-        try {
-          mKeyChain.sign(data, mAppCertificateName);
-          Log.e("zhehao", "Signing catalog with ID: " + mAppCertificateName.toUri());
-        } catch (Exception e) {
-          Log.e("zhehao", "Signing exception: " + e.getMessage());
-        }
+      try {
+        mKeyChain.sign(data);
+        Log.d(TAG, "Signing catalog with ID: " + mKeyChain.getDefaultCertificateName());
+      } catch (Exception e) {
+        Log.e(TAG, "Signing exception: " + e.getMessage());
       }
 
       record.put("timepoint", catalog.getCatalogTimePoint());
@@ -760,6 +813,7 @@ public class NdnDBManager implements Serializable {
     mDB.execSQL("delete from " + CATALOG_TABLE);
     mDB.execSQL("delete from " + CKEY_CATALOG_TABLE);
     mDB.execSQL("delete from " + ENCRYPTED_CKEY_TABLE);
+    mDB.execSQL("delete from " + ID_TABLE);
     Log.i(TAG, "RESET Table");
   }
 }

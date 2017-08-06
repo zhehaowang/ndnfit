@@ -14,7 +14,7 @@ public class NDNFitCommon {
 
   public static Name CATALOG_PREFIX = new Name(DATA_PREFIX).append("catalog");
 
-  public static Name UPDATE_INFO_PREFIX = new Name(DATA_PREFIX).append("update_info");
+//  public static Name UPDATE_INFO_PREFIX = new Name(DATA_PREFIX).append("update_info");
 
 //    public static Name UPDATE_INFO_CONFIRM_PREFIX = new Name("/org/openmhealth/dsu/confirm").append(UPDATE_INFO_PREFIX);
 //
@@ -46,7 +46,7 @@ public class NDNFitCommon {
     USER_PREFIX = new Name(userPrefix);
     DATA_PREFIX = new Name(userPrefix).append(new Name("SAMPLE/fitness/physical_activity/time_location"));
     CATALOG_PREFIX = new Name(DATA_PREFIX).append("catalog");
-    UPDATE_INFO_PREFIX = new Name(DATA_PREFIX).append("update_info");
+//    UPDATE_INFO_PREFIX = new Name(DATA_PREFIX).append("update_info");
     CKEY_PREFIX = new Name(DATA_PREFIX).append("C-KEY");
     CKEY_CATALOG_PREFIX = new Name(CKEY_PREFIX).append("catalog");
 //        DATA_CONFIRM_PREFIX = new Name("/org/openmhealth/dsu/confirm").append(new Name(DATA_PREFIX));
