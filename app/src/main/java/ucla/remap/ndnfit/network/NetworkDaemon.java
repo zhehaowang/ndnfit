@@ -59,7 +59,7 @@ public class NetworkDaemon {
         .append("0");
       face.setCommandSigningInfo(keyChain, certificateName);
 
-      final ReceiveInterest receiveInterest = new ReceiveInterest(face);
+      final ReceiveInterest receiveInterest = new ReceiveInterest();
       final RegisterFailure registerFailure = new RegisterFailure();
 
       AsyncTask<Void, Void, Void> networkTask = new AsyncTask<Void, Void, Void>() {
@@ -69,7 +69,7 @@ public class NetworkDaemon {
             face.registerPrefix(NDNFitCommon.DATA_PREFIX, receiveInterest,
               registerFailure);
 
-            face.registerPrefix(NDNFitCommon.CATALOG_PREFIX, receiveInterest,
+            face.registerPrefix(NdnDBManager.mAppCertificateName.getPrefix(-1), receiveInterest,
               registerFailure);
 
             //TODO: these two functions should not be invoked only once
@@ -151,11 +151,11 @@ public class NetworkDaemon {
             NDNFitCommon.LINK_OBJECT = new Link();
             NDNFitCommon.LINK_OBJECT.setName(NDNFitCommon.USER_PREFIX);
             NDNFitCommon.LINK_OBJECT.addDelegation(10, NDNFitCommon.LOCAL_HUB_PREFIX);
-//            try {
-//              NdnDBManager.mKeyChain.sign(NDNFitCommon.LINK_OBJECT, NdnDBManager.mAppCertificateName);
-//            } catch (SecurityException e) {
-//              e.printStackTrace();
-//            }
+            try {
+              NdnDBManager.mKeyChain.sign(NDNFitCommon.LINK_OBJECT);
+            } catch (SecurityException e) {
+              e.printStackTrace();
+            }
 
           } catch (EncodingException e) {
             e.printStackTrace();

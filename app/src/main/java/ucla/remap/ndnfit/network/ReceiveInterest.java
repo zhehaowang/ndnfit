@@ -7,26 +7,16 @@ import net.named_data.jndn.Face;
 import net.named_data.jndn.Interest;
 import net.named_data.jndn.InterestFilter;
 import net.named_data.jndn.Name;
-import net.named_data.jndn.OnData;
 import net.named_data.jndn.OnInterestCallback;
-import net.named_data.jndn.OnTimeout;
-
-import java.io.IOException;
 
 import ucla.remap.ndnfit.ndndb.NdnDBManager;
 
 public class ReceiveInterest implements OnInterestCallback {
-  private OnData onData;
-  private OnTimeout onTimeout;
-  private Face face;
   private NdnDBManager ndnDBManager;
   private static final String TAG = "ReceiveInterest";
 
-  public ReceiveInterest(Face face) {
-    this.face = face;
+  public ReceiveInterest() {
     ndnDBManager = NdnDBManager.getInstance();
-    onData = new ReceiveData();
-    onTimeout = new RequestDataTimeOut();
   }
 
   @Override
@@ -38,14 +28,18 @@ public class ReceiveInterest implements OnInterestCallback {
         return;
       }
       Name dataName = interest.getName();
+      if(dataName.isPrefixOf(NdnDBManager.mAppCertificateName)) {
+        face.putData(NdnDBManager.mKeyChain.getCertificate(NdnDBManager.mAppCertificateName));
+        Log.d(TAG, ">> D: " + NdnDBManager.mAppCertificateName);
+        return;
+      }
       Data data = ndnDBManager.readData(dataName);
       Log.d(TAG, " get D :" + (data == null ? "no data" : data.getName()));
       if (data != null) {
         face.putData(data);
         Log.d(TAG, ">> D: " + data.getName());
-//                face.expressInterest();
       }
-    } catch (IOException ex) {
+    } catch (Exception ex) {
       Log.e(TAG, "exception: " + ex.getMessage());
     }
   }

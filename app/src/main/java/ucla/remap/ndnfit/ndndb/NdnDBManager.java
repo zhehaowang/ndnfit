@@ -601,6 +601,16 @@ public class NdnDBManager implements Serializable {
       data.setContent(new Blob(documentAsString));
       try {
         mKeyChain.sign(data);
+//        Signature signature = data.getSignature();
+//        if (signature instanceof Sha256WithRsaSignature) {
+//          Log.d(TAG, ((Sha256WithRsaSignature)signature).getKeyLocator().getKeyName().toUri());
+//        } else if (signature instanceof Sha256WithEcdsaSignature) {
+//          Log.d(TAG, ((Sha256WithEcdsaSignature)signature).getKeyLocator().getKeyName().toUri());
+//        } else if (signature instanceof HmacWithSha256Signature) {
+//          Log.d(TAG, ((HmacWithSha256Signature)signature).getKeyLocator().getKeyName().toUri());
+//        } else {
+//          Log.d(TAG, "cannot know the type");
+//        }
         Log.d(TAG, "Signing catalog with ID: " + mKeyChain.getDefaultCertificateName());
       } catch (Exception e) {
         Log.e(TAG, "Signing exception: " + e.getMessage());
