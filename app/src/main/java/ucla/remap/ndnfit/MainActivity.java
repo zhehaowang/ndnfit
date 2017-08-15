@@ -154,7 +154,7 @@ public class MainActivity extends ActionBarActivity {
     dlgAlert.setMessage("Please choose an identity!");
     dlgAlert.setTitle("Choose an identity");
     dlgAlert.setPositiveButton("Ok", new AuthorizeOnClickListener(APP_NAME));
-    dlgAlert.setCancelable(true);
+    dlgAlert.setCancelable(false);
     dlgAlert.create().show();
   }
 
