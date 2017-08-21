@@ -11,6 +11,7 @@ import net.named_data.jndn.Interest;
 import net.named_data.jndn.Link;
 import net.named_data.jndn.Name;
 import net.named_data.jndn.OnData;
+import net.named_data.jndn.OnTimeout;
 import net.named_data.jndn.encoding.EncodingException;
 import net.named_data.jndn.encrypt.Schedule;
 import net.named_data.jndn.security.KeyChain;
@@ -153,6 +154,7 @@ public class NetworkDaemon {
             NDNFitCommon.LINK_OBJECT.addDelegation(10, NDNFitCommon.LOCAL_HUB_PREFIX);
             try {
               NdnDBManager.mKeyChain.sign(NDNFitCommon.LINK_OBJECT);
+//              registerOnDsuTest();
             } catch (SecurityException e) {
               e.printStackTrace();
             }
@@ -197,6 +199,38 @@ public class NetworkDaemon {
       }, new RequestDataTimeOut());
     } catch (Exception e) {
       e.printStackTrace();
+    }
+  }
+
+  private static void registerOnDsuTest() {
+    Name registerName = new Name().append(NDNFitCommon.REGISTER_PREFIX)
+      .append(NDNFitCommon.USER_PREFIX).append("20160817T081800");
+    // Link object is used for routing purpose, the DSU must decode this Link Object and attaches it
+    // with all Interests
+    // Notice that there is redundancy, not all the registrations Interests need to be attached with
+    // Link Object
+
+    try {
+      while (NDNFitCommon.LINK_OBJECT == null) {
+        Thread.sleep(5);
+      }
+      registerName.append(NDNFitCommon.LINK_OBJECT.wireEncode());
+      Interest registerInterest = new Interest();
+      registerInterest.setName(registerName);
+      face.expressInterest(registerInterest, new OnData() {
+        @Override
+        public void onData(Interest interest, Data data) {
+          Log.d(TAG, "registerOnDsuTest succeeded");
+        }
+      }, new OnTimeout() {
+        @Override
+        public void onTimeout(Interest interest) {
+          Log.d(TAG, "registerOnDsuTest failed");
+        }
+      });
+      Log.d(TAG, "register" + registerInterest.getName().toUri());
+    } catch (Exception ioe) {
+      ioe.printStackTrace();
     }
   }
 }
